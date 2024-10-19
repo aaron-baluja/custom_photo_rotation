@@ -130,7 +130,6 @@ def linear_wipe_transition(screen, old_surface, new_surface, direction='left', d
         
         if elapsed > duration:
             screen.blit(new_surface, (0, 0))
-            pygame.display.flip()
             return
         
         progress = elapsed / duration
@@ -145,8 +144,6 @@ def linear_wipe_transition(screen, old_surface, new_surface, direction='left', d
             screen.blit(old_surface, (offset, 0))
             screen.blit(new_surface, (-SCREEN_WIDTH + offset, 0))
         
-        pygame.display.flip()
-        clock.tick(FPS)
 
 def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
     clock = pygame.time.Clock()
@@ -159,7 +156,6 @@ def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
         if elapsed > duration:
             for surface, pos in new_surfaces:
                 screen.blit(surface, pos)
-            pygame.display.flip()
             return
         
         screen.fill((0, 0, 0))
@@ -172,8 +168,6 @@ def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
                 new_surface.set_alpha(alpha)
                 screen.blit(new_surface, pos)
         
-        pygame.display.flip()
-        clock.tick(FPS)
 
 def zoom_effect(screen, surface, duration=14, zoom_factor=0.94):
     clock = pygame.time.Clock()
@@ -199,9 +193,6 @@ def zoom_effect(screen, surface, duration=14, zoom_factor=0.94):
         
         screen.fill((0, 0, 0))
         screen.blit(zoomed_surface, (x_offset, y_offset))
-        pygame.display.flip()
-        
-        clock.tick(FPS)
 
 def display_layout(screen, layout, photos):
     surfaces = []
@@ -310,7 +301,6 @@ def run_screensaver(screen, photos, layouts):
         if current_layout is None:
             # First activation
             screen.fill((0, 0, 0))
-            pygame.display.flip()
             pygame.time.wait(250)  # 0.25 seconds black screen
             dissolve_transition(screen, [], new_surfaces, duration=0.25)
         elif len(new_layout) == 1:
@@ -322,14 +312,15 @@ def run_screensaver(screen, photos, layouts):
             dissolve_transition(screen, current_surfaces, new_surfaces)
 
         # Zoom effect
-        for surface, pos in new_surfaces:
-            zoom_effect(screen, surface)
+        # for surface, pos in new_surfaces:
+        #     zoom_effect(screen, surface)
 
         current_layout = new_layout
         current_photos = new_photos
         current_surfaces = new_surfaces
 
         clock.tick(FPS)
+        pygame.display.flip()
 
 # Main execution
 if __name__ == "__main__":
