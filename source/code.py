@@ -307,9 +307,11 @@ def run_screensaver(screen, photos, layouts):
             # Transition to one photo layout
             direction = random.choice(['left', 'right'])
             linear_wipe_transition(screen, screen.copy(), new_surfaces[0][0], direction)
+            pygame.time.wait(10000)            
         else:
             # Transition to multi-photo layout
             dissolve_transition(screen, current_surfaces, new_surfaces)
+            pygame.time.wait(10000)            
 
         # Zoom effect
         # for surface, pos in new_surfaces:
