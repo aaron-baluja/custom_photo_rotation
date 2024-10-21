@@ -330,7 +330,7 @@ if __name__ == "__main__":
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     try:
         photos = load_photos(SOURCE_FOLDER)
-        layouts = generate_layouts()  # You need to implement this function
+        layouts = generate_layouts()
         run_screensaver(screen, photos, layouts)        
     except NoPhotosError as e:
         print(e)
