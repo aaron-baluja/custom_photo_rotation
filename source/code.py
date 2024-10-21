@@ -6,7 +6,7 @@ import math
 from datetime import datetime, timedelta
 
 # Configuration
-SOURCE_FOLDER = "."
+SOURCE_FOLDER = "E:\Pictures To Check\Test"
 SCREEN_WIDTH = 2560
 SCREEN_HEIGHT = 1440
 INACTIVITY_TIMEOUT = 60  # seconds
@@ -16,17 +16,6 @@ PHOTO_DISPLAY_DURATION = 15  # seconds
 TIME_WEIGHT_DAYS = 7
 TIME_WEIGHT_MULTIPLIER = 3
 FPS = 60
-
-# Layout probabilities
-LAYOUT_PROBABILITIES = {
-    "one_photo": 0.70,
-    "two_photos": 0.08,
-    "three_vertical_photos": 0.05,
-    "three_mixed_photos": 0.08,
-    "four_photos": 0.04,
-    "five_photos": 0.04,
-    "six_photos": 0.01,
-}
 
 # Initialize Pygame
 pygame.init()
@@ -63,55 +52,84 @@ def load_photos(folder):
     
     return photos
 
-def select_photos(photos, num_needed, used_photos=None):
+def classify_photo(photo):
+    aspect_ratio = photo["width"] / photo["height"]
+    if 0.9 <= aspect_ratio <= 1.1:
+        return "1:1"
+    elif 1.7 <= aspect_ratio <= 1.8:
+        return "16:9 landscape"
+    elif 1/1.8 <= aspect_ratio <= 1/1.7:
+        return "16:9 vertical"
+    elif 1.3 <= aspect_ratio <= 1.4:
+        return "4:3 landscape"
+    elif 1/1.4 <= aspect_ratio <= 1/1.3:
+        return "4:3 vertical"
+    else:
+        return "other"
+
+def get_required_aspect(width, height):
+    aspect_ratio = width / height
+    if aspect_ratio == 16/9:
+        return "16:9 landscape"
+    elif aspect_ratio == 9/16:
+        return "16:9 vertical"
+    elif aspect_ratio == 4/3:
+        return "4:3 landscape"
+    elif aspect_ratio == 3/4:
+        return "4:3 vertical"
+    elif aspect_ratio == 1:
+        return "1:1"
+    else:
+        return "other"
+
+def select_photos(photos, layout, used_photos=None):
     if used_photos is None:
-        used_photos = {aspect: set() for aspect in ["16:9", "4:3", "1:1"]}
+        used_photos = {aspect: set() for aspect in ["16:9 landscape", "16:9 vertical", "4:3 landscape", "4:3 vertical", "1:1", "other"]}
     
     today = datetime.now()
     selected = []
     
-    while len(selected) < num_needed:
+    for x, y, width, height in layout:
+        required_aspect = get_required_aspect(width, height)
         weighted_photos = []
+        
         for photo in photos:
-            aspect = classify_photo(photo)
+            photo_aspect = classify_photo(photo)
+            
+            # Skip if the photo has been used and there are other unused photos of the same aspect ratio
+            if photo["path"] in used_photos[photo_aspect] and len(used_photos[photo_aspect]) < len([p for p in photos if classify_photo(p) == photo_aspect]):
+                continue
             
             # Apply time weighting
             photo_date = photo["date_taken"].replace(year=today.year)
-            days_diff = abs((today - photo_date).days)
-            if days_diff <= TIME_WEIGHT_DAYS or (365 - days_diff) <= TIME_WEIGHT_DAYS:
-                weighted_photos.extend([photo] * TIME_WEIGHT_MULTIPLIER)
+            days_diff = min(abs((today - photo_date).days), 365 - abs((today - photo_date).days))
+            if days_diff <= 7:
+                weighted_photos.extend([photo] * 3)
             
-            weighted_photos.append(photo)
+            # Add weight based on aspect ratio match
+            if photo_aspect == required_aspect:
+                weighted_photos.extend([photo] * 2)
+            elif photo_aspect.split()[0] == required_aspect.split()[0]:
+                # Allow landscape to fit vertical and vice versa, but with lower weight
+                weighted_photos.append(photo)
         
-        # Prioritize unused photos
-        unused_photos = [p for p in weighted_photos if p["path"] not in used_photos[classify_photo(p)]]
-        
-        if unused_photos:
-            photo = random.choice(unused_photos)
+        if weighted_photos:
+            chosen_photo = random.choice(weighted_photos)
+            selected.append((chosen_photo, (x, y, width, height)))
+            used_photos[classify_photo(chosen_photo)].add(chosen_photo["path"])
         else:
-            # If all photos have been used, select from all photos
-            photo = random.choice(weighted_photos)
-        
-        selected.append(photo)
-        aspect = classify_photo(photo)
-        used_photos[aspect].add(photo["path"])
-        
-        # If all photos of this aspect have been used, reset the used set for this aspect
-        if len(used_photos[aspect]) == len([p for p in photos if classify_photo(p) == aspect]):
-            used_photos[aspect].clear()
+            # If no suitable photo found, choose any unused photo
+            unused_photos = [p for p in photos if p["path"] not in used_photos[classify_photo(p)]]
+            if unused_photos:
+                chosen_photo = random.choice(unused_photos)
+                selected.append((chosen_photo, (x, y, width, height)))
+                used_photos[classify_photo(chosen_photo)].add(chosen_photo["path"])
+            else:
+                # If all photos have been used, reset used_photos and try again
+                used_photos = {aspect: set() for aspect in ["16:9 landscape", "16:9 vertical", "4:3 landscape", "4:3 vertical", "1:1", "other"]}
+                return select_photos(photos, layout, used_photos)
     
     return selected
-
-def classify_photo(photo):
-    width, height = photo["width"], photo["height"]
-    aspect_ratio = width / height
-    
-    if 0.9 <= aspect_ratio <= 1.1:
-        return "1:1"
-    elif (1.7 <= aspect_ratio <= 1.8) or (1/1.8 <= aspect_ratio <= 1/1.7):
-        return "16:9"
-    else:
-        return "4:3"  # This includes both landscape and portrait 4:3
 
 
 def display_photo(photo):
@@ -194,11 +212,41 @@ def zoom_effect(screen, surface, duration=14, zoom_factor=0.94):
         screen.fill((0, 0, 0))
         screen.blit(zoomed_surface, (x_offset, y_offset))
 
-def display_layout(screen, layout, photos):
+def display_layout(screen, selected_photos):
     surfaces = []
-    for photo, (x, y, w, h) in zip(photos, layout):
-        img = pygame.transform.scale(photo["image"], (w, h))
-        surfaces.append((img, (x, y)))
+    for photo, (x, y, w, h) in selected_photos:
+        # Load the image if it hasn't been loaded yet
+        if isinstance(photo["image"], str):
+            try:
+                photo["image"] = pygame.image.load(photo["image"]).convert()
+            except pygame.error as e:
+                print(f"Error loading image {photo['path']}: {e}")
+                continue
+
+        # Calculate the scaling factor to fit the photo into the layout slot
+        photo_aspect = photo["width"] / photo["height"]
+        slot_aspect = w / h
+        
+        if photo_aspect > slot_aspect:
+            # Photo is wider than the slot, scale based on height
+            scale_factor = h / photo["height"]
+        else:
+            # Photo is taller than the slot, scale based on width
+            scale_factor = w / photo["width"]
+        
+        # Calculate new dimensions
+        new_width = int(photo["width"] * scale_factor)
+        new_height = int(photo["height"] * scale_factor)
+        
+        # Scale the image
+        scaled_img = pygame.transform.smoothscale(photo["image"], (new_width, new_height))
+        
+        # Calculate position to center the image in the slot
+        pos_x = x + (w - new_width) // 2
+        pos_y = y + (h - new_height) // 2
+        
+        surfaces.append((scaled_img, (pos_x, pos_y)))
+    
     return surfaces
 
 def generate_layouts():
@@ -295,8 +343,8 @@ def run_screensaver(screen, photos, layouts):
                 return
 
         new_layout = random.choice(layouts)
-        new_photos = select_photos(photos, len(new_layout))
-        new_surfaces = display_layout(screen, new_layout, new_photos)
+        new_photos = select_photos(photos, new_layout)
+        new_surfaces = display_layout(screen, new_photos)
 
         if current_layout is None:
             # First activation
