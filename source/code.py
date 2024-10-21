@@ -6,7 +6,7 @@ import math
 from datetime import datetime, timedelta
 
 # Configuration
-SOURCE_FOLDER = "E:\Pictures To Check\Test"
+SOURCE_FOLDER = "."
 SCREEN_WIDTH = 2560
 SCREEN_HEIGHT = 1440
 INACTIVITY_TIMEOUT = 60  # seconds
