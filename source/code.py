@@ -3,6 +3,7 @@ import random
 import pygame
 import glob
 import math
+import time
 from datetime import datetime, timedelta
 
 # Configuration
@@ -21,6 +22,7 @@ FPS = 60
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
+
 
 
 class NoPhotosError(Exception):
@@ -99,35 +101,38 @@ def select_photos(photos, layout, used_photos=None):
             # Skip if the photo has been used and there are other unused photos of the same aspect ratio
             if photo["path"] in used_photos[photo_aspect] and len(used_photos[photo_aspect]) < len([p for p in photos if classify_photo(p) == photo_aspect]):
                 continue
+            if photo_aspect == required_aspect:            
+                # Apply time weighting
+                photo_date = photo["date_taken"].replace(year=today.year)
+                days_diff = min(abs((today - photo_date).days), 365 - abs((today - photo_date).days))
+                if days_diff <= 7:
+                    weighted_photos.extend([photo] * 3)
+                else:
+                    weighted_photos.extend([photo] * 1)                    
             
-            # Apply time weighting
-            photo_date = photo["date_taken"].replace(year=today.year)
-            days_diff = min(abs((today - photo_date).days), 365 - abs((today - photo_date).days))
-            if days_diff <= 7:
-                weighted_photos.extend([photo] * 3)
-            
-            # Add weight based on aspect ratio match
-            if photo_aspect == required_aspect:
-                weighted_photos.extend([photo] * 2)
-            elif photo_aspect.split()[0] == required_aspect.split()[0]:
-                # Allow landscape to fit vertical and vice versa, but with lower weight
-                weighted_photos.append(photo)
+            # # Add weight based on aspect ratio match
+
+            #     weighted_photos.extend([photo] * 2)
+            # elif photo_aspect.split()[0] == required_aspect.split()[0]:
+            #     # Allow landscape to fit vertical and vice versa, but with lower weight
+            #     weighted_photos.append(photo)
         
         if weighted_photos:
             chosen_photo = random.choice(weighted_photos)
             selected.append((chosen_photo, (x, y, width, height)))
             used_photos[classify_photo(chosen_photo)].add(chosen_photo["path"])
-        else:
+        # else:
             # If no suitable photo found, choose any unused photo
-            unused_photos = [p for p in photos if p["path"] not in used_photos[classify_photo(p)]]
-            if unused_photos:
-                chosen_photo = random.choice(unused_photos)
-                selected.append((chosen_photo, (x, y, width, height)))
-                used_photos[classify_photo(chosen_photo)].add(chosen_photo["path"])
-            else:
-                # If all photos have been used, reset used_photos and try again
-                used_photos = {aspect: set() for aspect in ["16:9 landscape", "16:9 vertical", "4:3 landscape", "4:3 vertical", "1:1", "other"]}
-                return select_photos(photos, layout, used_photos)
+            
+            # unused_photos = [p for p in photos if p["path"] not in used_photos[classify_photo(p)]]
+            # if unused_photos:
+            #     chosen_photo = random.choice(unused_photos)
+            #     selected.append((chosen_photo, (x, y, width, height)))
+            #     used_photos[classify_photo(chosen_photo)].add(chosen_photo["path"])
+            # else:
+            #     # If all photos have been used, reset used_photos and try again
+            #     used_photos = {aspect: set() for aspect in ["16:9 landscape", "16:9 vertical", "4:3 landscape", "4:3 vertical", "1:1", "other"]}
+            #     return select_photos(photos, layout, used_photos)
     
     return selected
 
@@ -148,7 +153,7 @@ def linear_wipe_transition(screen, old_surface, new_surface, direction='left', d
         
         if elapsed > duration:
             screen.blit(new_surface, (0, 0))
-            return
+            return True
         
         progress = elapsed / duration
         eased_progress = 1 - math.pow(1 - progress, 4)  # Ease out quart
@@ -161,6 +166,7 @@ def linear_wipe_transition(screen, old_surface, new_surface, direction='left', d
         else:
             screen.blit(old_surface, (offset, 0))
             screen.blit(new_surface, (-SCREEN_WIDTH + offset, 0))
+        pygame.display.flip()
         
 
 def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
@@ -174,7 +180,7 @@ def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
         if elapsed > duration:
             for surface, pos in new_surfaces:
                 screen.blit(surface, pos)
-            return
+            return True
         
         screen.fill((0, 0, 0))
         
@@ -185,35 +191,12 @@ def dissolve_transition(screen, old_surfaces, new_surfaces, duration=1.5):
                 alpha = min(255, int(frame_elapsed / 0.2 * 255))  # 0.2 seconds to reach full opacity
                 new_surface.set_alpha(alpha)
                 screen.blit(new_surface, pos)
-        
-
-def zoom_effect(screen, surface, duration=14, zoom_factor=0.94):
-    clock = pygame.time.Clock()
-    start_time = pygame.time.get_ticks()
-    original_size = surface.get_size()
+        pygame.display.flip()
     
-    while True:
-        current_time = pygame.time.get_ticks()
-        elapsed = (current_time - start_time) / 1000  # Convert to seconds
-        
-        if elapsed > duration:
-            return
-        
-        progress = elapsed / duration
-        current_zoom = 1 - (1 - zoom_factor) * progress
-        
-        zoomed_width = int(original_size[0] * current_zoom)
-        zoomed_height = int(original_size[1] * current_zoom)
-        zoomed_surface = pygame.transform.smoothscale(surface, (zoomed_width, zoomed_height))
-        
-        x_offset = (SCREEN_WIDTH - zoomed_width) // 2
-        y_offset = (SCREEN_HEIGHT - zoomed_height) // 2
-        
-        screen.fill((0, 0, 0))
-        screen.blit(zoomed_surface, (x_offset, y_offset))
 
 def display_layout(screen, selected_photos):
     surfaces = []
+    # print ("New layout")
     for photo, (x, y, w, h) in selected_photos:
         # Load the image if it hasn't been loaded yet
         if isinstance(photo["image"], str):
@@ -238,6 +221,8 @@ def display_layout(screen, selected_photos):
         new_width = int(photo["width"] * scale_factor)
         new_height = int(photo["height"] * scale_factor)
         
+        # print (photo["width"], photo["height"], (x, y, w, h) , photo_aspect, slot_aspect)
+
         # Scale the image
         scaled_img = pygame.transform.smoothscale(photo["image"], (new_width, new_height))
         
@@ -256,25 +241,25 @@ def generate_layouts():
             (0, 0, 2560, 1440)  # (x, y, width, height)
         ],
         
-        # Two photos layout
-        [
-            (0, 0, 1280, 1440),
-            (1280, 0, 1280, 1440)
-        ],
+        # # Two photos layout
+        # [
+        #     (0, 0, 1535, 1440),
+        #     (1535, 0, 2560, 1440)
+        # ],
         
         # Three vertical photos layout
-        [
-            (0, 0, 853, 1440),
-            (853, 0, 854, 1440),
-            (1707, 0, 853, 1440)
-        ],
+        # [
+        #     (0, 0, 853, 1440),
+        #     (853, 0, 854, 1440),
+        #     (1707, 0, 853, 1440)
+        # ],
         
-        # Three mixed photos layout
-        [
-            (0, 0, 1280, 1440),
-            (1280, 0, 1280, 720),
-            (1280, 720, 1280, 720)
-        ],
+        # # Three mixed photos layout
+        # [
+        #     (0, 0, 1280, 1440),
+        #     (1280, 0, 1280, 720),
+        #     (1280, 720, 1280, 720)
+        # ],
         
         # Four photos layout
         [
@@ -284,24 +269,24 @@ def generate_layouts():
             (1280, 720, 1280, 720)
         ],
         
-        # Five photos layout
-        [
-            (0, 0, 1280, 720),
-            (1280, 0, 1280, 720),
-            (0, 720, 853, 720),
-            (853, 720, 854, 720),
-            (1707, 720, 853, 720)
-        ],
+        # # Five photos layout
+        # [
+        #     (0, 0, 1280, 720),
+        #     (1280, 0, 1280, 720),
+        #     (0, 720, 853, 720),
+        #     (853, 720, 854, 720),
+        #     (1707, 720, 853, 720)
+        # ],
         
-        # Six photos layout
-        [
-            (0, 0, 853, 720),
-            (853, 0, 854, 720),
-            (1707, 0, 853, 720),
-            (0, 720, 853, 720),
-            (853, 720, 854, 720),
-            (1707, 720, 853, 720)
-        ]
+        # # Six photos layout
+        # [
+        #     (0, 0, 853, 720),
+        #     (853, 0, 854, 720),
+        #     (1707, 0, 853, 720),
+        #     (0, 720, 853, 720),
+        #     (853, 720, 854, 720),
+        #     (1707, 720, 853, 720)
+        # ]
     ]
     
     return layouts
@@ -309,12 +294,12 @@ def generate_layouts():
 # Layout probabilities
 LAYOUT_PROBABILITIES = {
     0: 0.70,  # One photo
-    1: 0.08,  # Two photos
-    2: 0.05,  # Three vertical photos
-    3: 0.08,  # Three mixed photos
+    # 1: 0.08,  # Two photos
+    # 2: 0.05,  # Three vertical photos
+    # 3: 0.08,  # Three mixed photos
     4: 0.04,  # Four photos
-    5: 0.04,  # Five photos
-    6: 0.01   # Six photos
+    # 5: 0.04,  # Five photos
+    # 6: 0.01   # Six photos
 }
 
 # Pink layouts (example, adjust as needed)
@@ -336,38 +321,66 @@ def run_screensaver(screen, photos, layouts):
     clock = pygame.time.Clock()
     current_layout = None
     current_photos = None
+    current_surfaces = None
+    last_update_time = 0
+    update_interval = 10  # seconds
+    transition_done = False
     
     while True:
+        current_time = time.time()
+        
         for event in pygame.event.get():
             if event.type in [pygame.QUIT, pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN]:
                 return
 
-        new_layout = random.choice(layouts)
-        new_photos = select_photos(photos, new_layout)
-        new_surfaces = display_layout(screen, new_photos)
+        # if more than interval has passed, start update logic
+        if current_time - last_update_time >= update_interval:
+            while True: # try layouts until one that works
+                new_layout = random.choice(layouts)
+                new_photos = select_photos(photos, new_layout)
+                if new_photos is not []:
+                    new_surfaces = display_layout(screen, new_photos)            
+                    break
+            last_update_time = current_time
+            transition_done = False
+        elif transition_done is False:
 
-        if current_layout is None:
-            # First activation
-            screen.fill((0, 0, 0))
-            pygame.time.wait(250)  # 0.25 seconds black screen
-            dissolve_transition(screen, [], new_surfaces, duration=0.25)
-        elif len(new_layout) == 1:
-            # Transition to one photo layout
-            direction = random.choice(['left', 'right'])
-            linear_wipe_transition(screen, screen.copy(), new_surfaces[0][0], direction)
-            pygame.time.wait(10000)            
-        else:
-            # Transition to multi-photo layout
-            dissolve_transition(screen, current_surfaces, new_surfaces)
-            pygame.time.wait(10000)            
+            if current_layout is None:
+                # First activation
+                screen.fill((0, 0, 0))
+                pygame.display.flip()
+                pygame.time.wait(250)  # 0.25 seconds black screen
+                transition_done = dissolve_transition(screen, [], new_surfaces, duration=0.25)
+            elif len(new_layout) == 1:
+                # Transition to one photo layout
+                direction = random.choice(['left', 'right'])
+                transition_done = linear_wipe_transition(screen, screen.copy(), new_surfaces[0][0], direction)
+            else:
+                # Transition to multi-photo layout
+                transition_done = dissolve_transition(screen, current_surfaces, new_surfaces)
 
-        # Zoom effect
-        # for surface, pos in new_surfaces:
-        #     zoom_effect(screen, surface)
+            current_layout = new_layout
+            current_photos = new_photos
+            current_surfaces = new_surfaces
 
-        current_layout = new_layout
-        current_photos = new_photos
-        current_surfaces = new_surfaces
+            # # Apply zoom effect
+            # zoomed_surfaces = []
+            # zoom_progress = (current_time - last_update_time) / update_interval
+            # zoom_factor = 1 - (1 - 0.94) * zoom_progress  # Zoom from 100% to 94%
+            
+            # for surface, (x, y) in current_surfaces:
+            #     original_size = surface.get_size()
+            #     zoomed_size = (int(original_size[0] * zoom_factor), int(original_size[1] * zoom_factor))
+            #     zoomed_surface = pygame.transform.smoothscale(surface, zoomed_size)
+                
+            #     new_x = x + (original_size[0] - zoomed_size[0]) // 2
+            #     new_y = y + (original_size[1] - zoomed_size[1]) // 2
+                
+            #     zoomed_surfaces.append((zoomed_surface, (new_x, new_y)))
+            
+            # screen.fill((0, 0, 0))
+            # for surface, pos in zoomed_surfaces:
+            #     screen.blit(surface, pos)
 
         clock.tick(FPS)
         pygame.display.flip()
