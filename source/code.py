@@ -20,8 +20,6 @@ TIME_WEIGHT_MULTIPLIER = 3
 FPS = 60
 
 # Initialize Pygame
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
 
@@ -388,9 +386,6 @@ def run_screensaver(screen, photos, layouts):
 
 # Main execution
 if __name__ == "__main__":
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
     if len(sys.argv) > 1:
         # Remove escape characters and normalize the path
         source_folder = (sys.argv[1])
@@ -399,6 +394,8 @@ if __name__ == "__main__":
 
     try:
         photos = load_photos(source_folder)
+        pygame.init()
+        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))        
         layouts = generate_layouts()
         run_screensaver(screen, photos, layouts)        
     except NoPhotosError as e:
