@@ -4,10 +4,11 @@ import pygame
 import glob
 import math
 import time
+import sys
 from datetime import datetime, timedelta
 
 # Configuration
-SOURCE_FOLDER = "E:\Pictures To Check\Test"
+SOURCE_FOLDER_DEFAULT = "."
 SCREEN_WIDTH = 2560
 SCREEN_HEIGHT = 1440
 INACTIVITY_TIMEOUT = 60  # seconds
@@ -389,8 +390,15 @@ def run_screensaver(screen, photos, layouts):
 if __name__ == "__main__":
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    if len(sys.argv) > 1:
+        # Remove escape characters and normalize the path
+        source_folder = (sys.argv[1])
+    else:
+        source_folder = SOURCE_FOLDER_DEFAULT
+
     try:
-        photos = load_photos(SOURCE_FOLDER)
+        photos = load_photos(source_folder)
         layouts = generate_layouts()
         run_screensaver(screen, photos, layouts)        
     except NoPhotosError as e:
