@@ -43,7 +43,8 @@ def load_photos(folder):
                         "image": img,
                         "width": width,
                         "height": height,
-                        "date_taken": date_taken
+                        "date_taken": date_taken,
+                        "aspect_ratio": get_required_aspect(width, height),
                     })
                 except Exception as e:
                     print(f"Failed to load image {file_path}: {e}")
