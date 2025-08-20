@@ -1,3 +1,19 @@
 # Screen Saver Configuration
 # Path to the folder containing your images
 IMAGE_FOLDER=E:\Pallu and Jakub Processed Pictures\Photo Rotation Test
+
+# Display settings
+DISPLAY_INTERVAL=15000
+FULLSCREEN=true
+
+# Layout settings
+LAYOUT_TYPE=auto
+# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane
+# auto = automatically rotate through all available layouts
+LAYOUT_ROTATION_ENABLED=true
+LAYOUT_ROTATION_INTERVAL=30000
+# Layout rotation interval in milliseconds (30 seconds default)
+
+# Debug settings
+DEBUG_MODE=true
+# Enable debug mode to show metadata overlays on photos

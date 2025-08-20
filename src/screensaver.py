@@ -9,6 +9,8 @@ import os
 from photo_classifier import PhotoClassifier
 from photo_metadata import PhotoMetadata
 from config_manager import ConfigManager
+from layout_manager import LayoutManager
+from photo_selector import PhotoSelector
 from utils import find_image_files, calculate_display_dimensions, print_separator
 
 
@@ -31,14 +33,14 @@ class ScreenSaver:
         # Bind exit events
         self.root.bind('<Escape>', lambda e: self.exit_screensaver())
         self.root.bind('<Button-1>', lambda e: self.exit_screensaver())
-        self.root.bind('<Key>', lambda e: self.exit_screensaver())
+        self.root.bind('<KeyPress>', self.on_key_press)
+        self.root.focus_set()  # Make sure the window can receive key events
         
         # Variables
         self.photos_by_category = {}
-        self.current_category = None
-        self.current_photo_index = 0
-        self.photo = None
+        self.photo_selector = None
         self.running = False
+        self.layout_rotation_timer = None
         
         # Load config and start
         self.load_and_classify_photos()
@@ -82,12 +84,93 @@ class ScreenSaver:
         # Print classification summary
         self.print_classification_summary()
         
+        # Initialize layout system
+        self.initialize_layout_system()
+        
         # Start slideshow if photos found
         total_photos = sum(len(photos) for photos in self.photos_by_category.values())
         if total_photos > 0:
             self.start_slideshow()
         else:
             self.show_error(f"No supported images found in: {image_folder}")
+    
+    def initialize_layout_system(self):
+        """Initialize the layout system based on configuration"""
+        # Get screen dimensions
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        print(f"Screen dimensions: {screen_width}x{screen_height}")
+        
+        # Create layout manager
+        self.layout_manager = LayoutManager(screen_width, screen_height)
+        
+        # Get configured layout type
+        layout_type = self.config_manager.get_layout_type()
+        print(f"Configured layout type: {layout_type}")
+        
+        # Configure layout rotation
+        rotation_enabled = self.config_manager.is_layout_rotation_enabled()
+        self.layout_manager.set_layout_rotation_enabled(rotation_enabled)
+        
+        if rotation_enabled:
+            print(f"Layout rotation enabled with {self.layout_manager.get_layout_count()} layouts available")
+            print(f"Available layouts: {', '.join(self.layout_manager.get_available_layout_names())}")
+        
+        # Set initial layout
+        if layout_type == "auto":
+            # Start with first available layout
+            if self.layout_manager.get_available_layouts():
+                self.layout_manager.set_current_layout_by_index(0)
+                print(f"Auto mode: Starting with layout: {self.layout_manager.get_current_layout().name}")
+            else:
+                print("No layouts available")
+                return
+        else:
+            # Check if specific layout is available
+            if not self.layout_manager.can_use_layout(layout_type):
+                print(f"Layout '{layout_type}' not available for this screen resolution")
+                print(f"Available layouts: {self.layout_manager.get_available_layout_names()}")
+                # Fallback to first available layout
+                if self.layout_manager.get_available_layouts():
+                    self.layout_manager.set_current_layout_by_index(0)
+                    print(f"Fallback to layout: {self.layout_manager.get_current_layout().name}")
+                else:
+                    print("No layouts available")
+                    return
+            else:
+                self.layout_manager.set_current_layout(layout_type)
+                print(f"Using layout: {self.layout_manager.get_current_layout().name}")
+        
+        # Create photo selector
+        self.photo_selector = PhotoSelector(self.layout_manager)
+        
+        # Organize photos by pane
+        pane_photos = self.photo_selector.organize_photos_by_pane(self.photos_by_category)
+        
+        # Print pane summary
+        self.print_pane_summary()
+    
+    def print_pane_summary(self):
+        """Print a summary of photos available for each pane"""
+        if not self.photo_selector:
+            return
+        
+        pane_summary = self.photo_selector.get_pane_summary()
+        
+        print_separator()
+        print("Layout Pane Summary:")
+        for pane_name, info in pane_summary.items():
+            categories_str = ", ".join(info['categories'])
+            dimensions = info['dimensions']
+            if dimensions:
+                x, y, w, h = dimensions
+                print(f"  {pane_name.capitalize()} Pane ({w}x{h}): {info['total_photos']} photos")
+                print(f"    Categories: {categories_str}")
+            else:
+                print(f"  {pane_name.capitalize()} Pane: {info['total_photos']} photos")
+                print(f"    Categories: {categories_str}")
+        print_separator()
     
     def print_classification_summary(self):
         """Print a summary of photo classification results"""
@@ -133,99 +216,211 @@ class ScreenSaver:
     
     def start_slideshow(self):
         """Start the image slideshow"""
-        if not self.photos_by_category:
+        if not self.photo_selector:
             return
             
         self.running = True
         
-        # Start with the first available category
-        available_categories = [cat for cat in self.photos_by_category.keys() if self.photos_by_category[cat]]
-        if available_categories:
-            self.current_category = available_categories[0]
-            self.current_photo_index = 0
-            self.show_next_photo()
-    
-    def show_next_photo(self):
-        """Display the next photo in the slideshow"""
-        if not self.running or not self.photos_by_category:
-            return
+        # Check if we have photos for any pane
+        has_photos = any(self.photo_selector.has_photos_for_pane(pane_name) 
+                        for pane_name in self.photo_selector.get_all_pane_names())
+        
+        if has_photos:
+            self.show_next_photos()
             
+            # Start layout rotation if enabled
+            if self.layout_manager.is_layout_rotation_enabled():
+                self.start_layout_rotation()
+        else:
+            self.show_error("No photos available for the current layout")
+    
+    def start_layout_rotation(self):
+        """Start automatic layout rotation"""
+        if not self.layout_manager.is_layout_rotation_enabled():
+            return
+        
+        rotation_interval = self.config_manager.get_layout_rotation_interval()
+        print(f"Layout rotation will occur every {rotation_interval/1000:.1f} seconds")
+        
+        # Schedule first layout rotation
+        self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout)
+    
+    def rotate_layout(self):
+        """Rotate to the next layout"""
+        if not self.running or not self.layout_manager.is_layout_rotation_enabled():
+            return
+        
+        # Get next layout
+        next_layout = self.layout_manager.rotate_to_next_layout()
+        if next_layout:
+            print(f"Rotating to layout: {next_layout.name}")
+            
+            # Reorganize photos for new layout
+            self.photo_selector.organize_photos_by_pane(self.photos_by_category)
+            
+            # Print new pane summary
+            self.print_pane_summary()
+            
+            # Show photos in new layout
+            self.show_next_photos()
+            
+            # Schedule next rotation
+            rotation_interval = self.config_manager.get_layout_rotation_interval()
+            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout)
+    
+    def show_next_photos(self):
+        """Display the next photos for all panes"""
+        if not self.running or not self.photo_selector:
+            return
+        
         try:
-            # Get current photo
-            current_photos = self.photos_by_category[self.current_category]
-            if not current_photos:
-                self.move_to_next_category()
+            # Clear existing content
+            for widget in self.root.winfo_children():
+                widget.destroy()
+            
+            # Get current layout
+            layout = self.layout_manager.get_current_layout()
+            if not layout:
                 return
             
-            photo_metadata = current_photos[self.current_photo_index]
+            # Get unique photos for all panes simultaneously
+            pane_photos = self.photo_selector.get_unique_photos_for_all_panes()
             
-            # Load and display image
+            # Display photos for each pane
+            for pane in layout.panes:
+                if pane.name in pane_photos:
+                    self.display_photo_in_pane(pane, pane_photos[pane.name])
+            
+            # Schedule next photo rotation
+            display_interval = self.config_manager.get_display_interval()
+            self.root.after(display_interval, self.next_photos)
+            
+        except Exception as e:
+            print(f"Error displaying photos: {e}")
+            self.next_photos()
+    
+    def display_photo_in_pane(self, pane, photo_metadata=None):
+        """Display a photo in a specific pane"""
+        try:
+            # Get photo metadata if not provided
+            if photo_metadata is None:
+                photo_metadata = self.photo_selector.get_next_photo_for_pane(pane.name)
+            
+            if not photo_metadata:
+                return
+            
+            # Load image
             image = Image.open(photo_metadata.filepath)
             
-            # Calculate display dimensions
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
+            # Calculate display dimensions for this pane
             target_width, target_height = calculate_display_dimensions(
-                screen_width, screen_height,
+                pane.width, pane.height,
                 photo_metadata.width, photo_metadata.height
             )
             
             # Resize image
             image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
             
+            # Add debug overlay if enabled
+            if self.config_manager.is_debug_mode_enabled():
+                image = self.add_debug_overlay(image, photo_metadata, pane)
+            
             # Convert to PhotoImage
-            self.photo = ImageTk.PhotoImage(image)
+            photo = ImageTk.PhotoImage(image)
+            
+            # Create frame for this pane
+            pane_frame = tk.Frame(self.root, bg='black')
+            pane_frame.place(x=pane.x, y=pane.y, width=pane.width, height=pane.height)
             
             # Create and configure image label
-            self.image_label = tk.Label(self.root, image=self.photo, bg='black')
-            self.image_label.pack(expand=True, fill='both')
-            
-            # Schedule next photo
-            display_interval = self.config_manager.get_display_interval()
-            self.root.after(display_interval, self.next_photo)
+            image_label = tk.Label(pane_frame, image=photo, bg='black')
+            image_label.photo = photo  # Keep a reference
+            image_label.pack(expand=True, fill='both')
             
         except Exception as e:
-            print(f"Error displaying photo: {e}")
-            self.next_photo()
+            print(f"Error displaying photo in pane {pane.name}: {e}")
     
-    def next_photo(self):
-        """Move to the next photo"""
+    def add_debug_overlay(self, image, photo_metadata, pane):
+        """Add debug metadata overlay to the image"""
+        try:
+            from PIL import ImageDraw, ImageFont
+            
+            # Create a copy of the image to draw on
+            overlay_image = image.copy()
+            draw = ImageDraw.Draw(overlay_image)
+            
+            # Try to use a default font, fallback to basic if not available
+            try:
+                # Try to use a system font
+                font = ImageFont.truetype("arial.ttf", 16)
+            except:
+                try:
+                    font = ImageFont.truetype("DejaVuSans.ttf", 16)
+                except:
+                    font = ImageFont.load_default()
+            
+            # Prepare debug text
+            debug_lines = [
+                f"Pane: {pane.name}",
+                f"File: {os.path.basename(photo_metadata.filepath)}",
+                f"Category: {photo_metadata.aspect_ratio_category}",
+                f"Original: {photo_metadata.width}x{photo_metadata.height}",
+                f"Display: {pane.width}x{pane.height}",
+                f"Date: {photo_metadata.get_formatted_date()}",
+                f"Size: {photo_metadata.get_file_size_mb():.1f}MB"
+            ]
+            
+            # Calculate text positioning (top-left corner with some padding)
+            padding = 10
+            line_height = 20
+            y_position = padding
+            
+            # Draw semi-transparent background for text
+            max_line_width = max(draw.textlength(line, font=font) for line in debug_lines)
+            text_bg_width = int(max_line_width) + 20
+            text_bg_height = len(debug_lines) * line_height + 20
+            
+            # Create semi-transparent overlay
+            overlay_bg = Image.new('RGBA', (text_bg_width, text_bg_height), (0, 0, 0, 128))
+            overlay_image.paste(overlay_bg, (padding, padding), overlay_bg)
+            
+            # Draw text lines
+            for i, line in enumerate(debug_lines):
+                y = y_position + (i * line_height)
+                draw.text((padding + 10, y), line, fill=(255, 255, 255, 255), font=font)
+            
+            return overlay_image
+            
+        except Exception as e:
+            print(f"Error adding debug overlay: {e}")
+            return image  # Return original image if overlay fails
+    
+    def next_photos(self):
+        """Move to the next set of photos"""
         if not self.running:
             return
-            
-        # Remove current image
-        if hasattr(self, 'image_label'):
-            self.image_label.destroy()
-            
-        # Move to next photo in current category
-        current_photos = self.photos_by_category[self.current_category]
-        self.current_photo_index = (self.current_photo_index + 1) % len(current_photos)
         
-        # If we've completed a category, move to the next one
-        if self.current_photo_index == 0:
-            self.move_to_next_category()
-        
-        self.show_next_photo()
+        self.show_next_photos()
     
-    def move_to_next_category(self):
-        """Move to the next category with photos"""
-        available_categories = [cat for cat in self.photos_by_category.keys() if self.photos_by_category[cat]]
-        if not available_categories:
-            return
-            
-        current_index = available_categories.index(self.current_category)
-        next_index = (current_index + 1) % len(available_categories)
-        self.current_category = available_categories[next_index]
-        self.current_photo_index = 0
-        
-        # Print category transition
-        display_name = self.photo_classifier.get_category_display_name(self.current_category)
-        photo_count = len(self.photos_by_category[self.current_category])
-        print(f"Switching to category: {display_name} ({photo_count} photos)")
+    def on_key_press(self, event):
+        """Handle key press events"""
+        # In debug mode, Enter key advances to next photo rotation
+        if self.config_manager.is_debug_mode_enabled() and event.keysym == 'Return':
+            print("🔄 Debug mode: Advancing to next photo rotation...")
+            self.next_photos()
+        else:
+            # Any other key exits the screensaver
+            self.exit_screensaver()
     
     def exit_screensaver(self):
         """Exit the screen saver"""
         self.running = False
+        
+        # Cancel layout rotation timer
+        if self.layout_rotation_timer:
+            self.root.after_cancel(self.layout_rotation_timer)
+            self.layout_rotation_timer = None
+        
         self.root.quit()
     
     def run(self):
