@@ -82,7 +82,7 @@ class ScreenSaver:
         exit_label.pack(pady=20)
     
     def load_images(self):
-        """Load all supported image files from the configured folder"""
+        """Load all supported image files from the configured folder and subdirectories"""
         if not self.image_folder:
             return
             
@@ -93,13 +93,16 @@ class ScreenSaver:
             if not os.path.exists(self.image_folder):
                 self.show_error(f"Image folder not found: {self.image_folder}\nPlease check config.txt file.")
                 return
-                
-            for filename in os.listdir(self.image_folder):
-                if any(filename.lower().endswith(fmt) for fmt in supported_formats):
-                    filepath = os.path.join(self.image_folder, filename)
-                    self.images.append(filepath)
+            
+            # Recursively search for images in the folder and all subdirectories
+            for root, dirs, files in os.walk(self.image_folder):
+                for filename in files:
+                    if any(filename.lower().endswith(fmt) for fmt in supported_formats):
+                        filepath = os.path.join(root, filename)
+                        self.images.append(filepath)
             
             if self.images:
+                print(f"Found {len(self.images)} images in {self.image_folder} and subdirectories")
                 self.start_slideshow()
             else:
                 self.show_error(f"No supported images found in: {self.image_folder}\nSupported formats: JPG, PNG, BMP, GIF, TIFF")

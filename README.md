@@ -1,6 +1,6 @@
 # Custom Photo Rotation Screen Saver
 
-A Python-based screen saver application that displays images from a configured folder with automatic rotation every 15 seconds.
+A Python-based screen saver application that displays images from a configured folder with automatic rotation every 15 seconds. The program recursively searches for images in all subdirectories.
 
 ## Features
 
@@ -10,6 +10,7 @@ A Python-based screen saver application that displays images from a configured f
 - **Multiple Formats**: Supports JPG, JPEG, PNG, BMP, GIF, and TIFF formats
 - **Easy Exit**: Press any key, click, or press Escape to exit
 - **Config File**: Simple text file configuration for image folder path
+- **Recursive Search**: Automatically finds images in all subdirectories
 
 ## Requirements
 
@@ -47,6 +48,7 @@ IMAGE_FOLDER=C:\Users\YourName\Pictures\Screensaver
 - Use forward slashes (/) or double backslashes (\\) in Windows paths
 - The config file must be in the same directory as `screensaver.py`
 - If no config file exists, a default one will be created pointing to `~/Pictures/Screensaver`
+- **Recursive Search**: The program will automatically find images in all subdirectories of the specified folder
 
 ## Usage
 
@@ -66,6 +68,7 @@ IMAGE_FOLDER=C:\Users\YourName\Pictures\Screensaver
 - **Supported Formats**: JPG, JPEG, PNG, BMP, GIF, TIFF
 - **Aspect Ratio**: Images will be automatically resized to fit 16:9 ratio
 - **Screen Fit**: Images are scaled to fit your screen while maintaining aspect ratio
+- **Search Depth**: Images are found in the specified folder and all subdirectories
 
 ## Technical Details
 
@@ -74,6 +77,7 @@ IMAGE_FOLDER=C:\Users\YourName\Pictures\Screensaver
 - Automatic image rotation with configurable timing
 - Responsive design that adapts to different screen resolutions
 - No UI elements - starts directly with slideshow
+- **Recursive file search** using `os.walk()` for comprehensive image discovery
 
 ## Customization
 
@@ -99,6 +103,8 @@ self.root.after(10000, self.next_image)  # 10 seconds
 # Path to the folder containing your images
 IMAGE_FOLDER=C:\Users\Aaron\Pictures\Vacation Photos
 ```
+
+**Note**: This will find all images in "Vacation Photos" and any subfolders like "Vacation Photos\Beach", "Vacation Photos\Mountains", etc.
 
 ## License
 
