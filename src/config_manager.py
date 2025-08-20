@@ -61,8 +61,8 @@ class ConfigManager:
                 "# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane",
                 "# auto = automatically rotate through all available layouts",
                 "LAYOUT_ROTATION_ENABLED=true",
-                "LAYOUT_ROTATION_INTERVAL=30000",
-                "# Layout rotation interval in milliseconds (30 seconds default)",
+                "PHOTO_LAYOUT_CHANGE_INTERVAL=15000",
+                "# How often the photo layout changes in milliseconds (15 seconds default)",
                 "",
                 "# Debug settings",
                 "DEBUG_MODE=false",
@@ -78,7 +78,7 @@ class ConfigManager:
             self.config['FULLSCREEN'] = 'true'
             self.config['LAYOUT_TYPE'] = 'auto'
             self.config['LAYOUT_ROTATION_ENABLED'] = 'true'
-            self.config['LAYOUT_ROTATION_INTERVAL'] = '30000'
+            self.config['PHOTO_LAYOUT_CHANGE_INTERVAL'] = '15000'
             self.config['DEBUG_MODE'] = 'false'
             
             print(f"Created default config file: {self.config_file}")
@@ -111,8 +111,8 @@ class ConfigManager:
                 f.write("# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane\n")
                 f.write("# auto = automatically rotate through all available layouts\n")
                 f.write(f"LAYOUT_ROTATION_ENABLED={self.config.get('LAYOUT_ROTATION_ENABLED', 'true')}\n")
-                f.write(f"LAYOUT_ROTATION_INTERVAL={self.config.get('LAYOUT_ROTATION_INTERVAL', '30000')}\n")
-                f.write("# Layout rotation interval in milliseconds (30 seconds default)\n")
+                f.write(f"PHOTO_LAYOUT_CHANGE_INTERVAL={self.config.get('PHOTO_LAYOUT_CHANGE_INTERVAL', '15000')}\n")
+                f.write("# How often the photo layout changes in milliseconds (15 seconds default)\n")
                 f.write("\n")
                 f.write(f"# Debug settings\n")
                 f.write(f"DEBUG_MODE={self.config.get('DEBUG_MODE', 'false')}\n")
@@ -156,16 +156,16 @@ class ConfigManager:
         """Enable or disable layout rotation"""
         self.set('LAYOUT_ROTATION_ENABLED', str(enabled).lower())
     
-    def get_layout_rotation_interval(self):
-        """Get the layout rotation interval in milliseconds"""
+    def get_photo_layout_change_interval(self):
+        """Get how often the photo layout changes in milliseconds"""
         try:
-            return int(self.config.get('LAYOUT_ROTATION_INTERVAL', '30000'))
+            return int(self.config.get('PHOTO_LAYOUT_CHANGE_INTERVAL', '15000'))
         except ValueError:
-            return 30000
+            return 15000
     
-    def set_layout_rotation_interval(self, interval):
-        """Set the layout rotation interval in milliseconds"""
-        self.set('LAYOUT_ROTATION_INTERVAL', str(interval))
+    def set_photo_layout_change_interval(self, interval):
+        """Set how often the photo layout changes in milliseconds"""
+        self.set('PHOTO_LAYOUT_CHANGE_INTERVAL', str(interval))
     
     def is_debug_mode_enabled(self):
         """Check if debug mode is enabled"""

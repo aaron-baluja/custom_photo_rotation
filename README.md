@@ -122,8 +122,8 @@ LAYOUT_TYPE=auto
 # Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
-LAYOUT_ROTATION_INTERVAL=30000
-# Layout rotation interval in milliseconds (30 seconds default)
+PHOTO_LAYOUT_CHANGE_INTERVAL=15000
+# How often the photo layout changes in milliseconds (15 seconds default)
 ```
 
 **Important Notes:**
@@ -146,7 +146,7 @@ LAYOUT_ROTATION_INTERVAL=30000
 ### 🎯 Auto Mode (Layout Rotation)
 1. **Photo Discovery**: Recursively searches your folder for JPG, JPEG, and PNG files
 2. **Classification**: Each photo is analyzed and categorized by aspect ratio
-3. **Layout Rotation**: Automatically cycles through all available layouts every 30 seconds
+3. **Layout Rotation**: Automatically cycles through all available layouts every 15 seconds
 4. **Photo Display**: Each layout shows appropriate photos for 15 seconds before rotating
 5. **Continuous Experience**: Seamlessly transitions between different layout modes
 
@@ -338,7 +338,7 @@ Set `DEBUG_MODE=false` in `config.txt` to return to normal screen saver operatio
 - **Folder Not Found**: Verify the folder path exists and is accessible
 - **No Supported Images**: Ensure your folder contains JPG, JPEG, or PNG files
 - **Layout Not Available**: Check that your screen resolution meets the minimum requirements (≥1920x1080)
-- **Layout Rotation Issues**: Verify `LAYOUT_ROTATION_ENABLED=true` and check rotation interval settings
+- **Layout Rotation Issues**: Verify `LAYOUT_ROTATION_ENABLED=true` and check `PHOTO_LAYOUT_CHANGE_INTERVAL` settings
 - **Photo Classification Issues**: Enable `DEBUG_MODE=true` to see metadata overlays and verify photo categorization
 - **Performance Issues**: Large images may take longer to load; consider resizing them beforehand
 - **Exit Issues**: Use Ctrl+C in the terminal if the application becomes unresponsive
@@ -357,13 +357,13 @@ FULLSCREEN=true
 # Layout settings
 LAYOUT_TYPE=auto
 LAYOUT_ROTATION_ENABLED=true
-LAYOUT_ROTATION_INTERVAL=30000
+PHOTO_LAYOUT_CHANGE_INTERVAL=15000
 
 # Debug settings
 DEBUG_MODE=false
 ```
 
-**Note**: This will find all images in "Vacation Photos" and any subfolders, classify them by aspect ratio, and automatically rotate through all available layouts every 30 seconds, with each layout displaying appropriate photos for 15 seconds.
+**Note**: This will find all images in "Vacation Photos" and any subfolders, classify them by aspect ratio, and automatically rotate through all available layouts every 15 seconds, with each layout displaying appropriate photos for 15 seconds.
 
 ## Demo and Testing
 

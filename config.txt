@@ -11,8 +11,8 @@ LAYOUT_TYPE=auto
 # Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
-LAYOUT_ROTATION_INTERVAL=30000
-# Layout rotation interval in milliseconds (30 seconds default)
+PHOTO_LAYOUT_CHANGE_INTERVAL=15000
+# How often the photo layout changes in milliseconds (15 seconds default)
 
 # Debug settings
 DEBUG_MODE=true
