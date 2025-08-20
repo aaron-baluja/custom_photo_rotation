@@ -1,0 +1,3 @@
+# Screen Saver Configuration
+# Path to the folder containing your images
+IMAGE_FOLDER=E:\Pallu and Jakub Processed Pictures\Photo Rotation Test
