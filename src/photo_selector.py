@@ -131,12 +131,93 @@ class PhotoSelector:
         if not self.layout_manager.get_current_layout():
             return {}
         
+        layout = self.layout_manager.get_current_layout()
+        
+        # Special handling for dual pane layout
+        if layout.type.value == "dual_pane" and len(layout.panes) == 2:
+            return self._get_dual_pane_photos()
+        
+        # Default behavior for other layouts
+        return self._get_default_pane_photos()
+    
+    def _get_dual_pane_photos(self) -> Dict[str, PhotoMetadata]:
+        """Special photo selection for dual pane: one 4:3/square and one 16:9 vertical"""
+        layout = self.layout_manager.get_current_layout()
+        pane_photos = {}
+        
+        print(f"🔍 Selecting dual pane photos (one 4:3/square + one 16:9 vertical)...")
+        
+        # Get all available photos by category
+        all_photos_by_category = {}
+        for pane in layout.panes:
+            if not self.has_photos_for_pane(pane.name):
+                continue
+            
+            photos = self.pane_photos[pane.name]
+            for photo in photos:
+                category = photo.aspect_ratio_category
+                if category not in all_photos_by_category:
+                    all_photos_by_category[category] = []
+                all_photos_by_category[category].append(photo)
+        
+        # Remove duplicates within each category
+        for category in all_photos_by_category:
+            unique_photos = []
+            seen_paths = set()
+            for photo in all_photos_by_category[category]:
+                if photo.filepath not in seen_paths:
+                    unique_photos.append(photo)
+                    seen_paths.add(photo.filepath)
+            all_photos_by_category[category] = unique_photos
+        
+        # Select one 4:3/square photo and one 16:9 vertical photo
+        group_43_square = []
+        group_169_vertical = []
+        
+        for category, photos in all_photos_by_category.items():
+            if category in ["4:3_vertical", "square"]:
+                group_43_square.extend(photos)
+            elif category == "16:9_vertical":
+                group_169_vertical.extend(photos)
+        
+        print(f"  📊 Available: {len(group_43_square)} 4:3/square photos, {len(group_169_vertical)} 16:9 vertical photos")
+        
+        if not group_43_square or not group_169_vertical:
+            print(f"  ⚠️  Cannot create dual pane layout: missing photo types")
+            print(f"      4:3/square photos: {len(group_43_square)}")
+            print(f"      16:9 vertical photos: {len(group_169_vertical)}")
+            return self._get_default_pane_photos()
+        
+        # Select photos (using current indices to maintain rotation)
+        photo_43_square = group_43_square[self.pane_photo_indices.get("dual_43_square", 0) % len(group_43_square)]
+        photo_169_vertical = group_169_vertical[self.pane_photo_indices.get("dual_169_vertical", 0) % len(group_169_vertical)]
+        
+        # Randomly assign to left/right panes
+        import random
+        panes = list(layout.panes)
+        random.shuffle(panes)
+        
+        pane_photos[panes[0].name] = photo_43_square
+        pane_photos[panes[1].name] = photo_169_vertical
+        
+        # Update indices for next rotation
+        self.pane_photo_indices["dual_43_square"] = (self.pane_photo_indices.get("dual_43_square", 0) + 1) % len(group_43_square)
+        self.pane_photo_indices["dual_169_vertical"] = (self.pane_photo_indices.get("dual_169_vertical", 0) + 1) % len(group_169_vertical)
+        
+        print(f"  ✅ Selected 4:3/square photo: {photo_43_square.filepath} → {panes[0].name} pane")
+        print(f"  ✅ Selected 16:9 vertical photo: {photo_169_vertical.filepath} → {panes[1].name} pane")
+        
+        return pane_photos
+    
+    def _get_default_pane_photos(self) -> Dict[str, PhotoMetadata]:
+        """Default photo selection for non-dual pane layouts"""
+        layout = self.layout_manager.get_current_layout()
         pane_photos = {}
         used_photos = set()
         
-        print(f"🔍 Selecting unique photos for {len(self.layout_manager.get_current_layout().panes)} panes...")
+        print(f"🔍 Selecting unique photos for {len(layout.panes)} panes...")
         
-        for pane in self.layout_manager.get_current_layout().panes:
+        for pane in layout.panes:
             if not self.has_photos_for_pane(pane.name):
                 print(f"  ⚠️  No photos available for {pane.name} pane")
                 continue

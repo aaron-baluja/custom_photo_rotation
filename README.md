@@ -31,9 +31,9 @@ A Python-based screen saver application that displays images from a configured f
 
 ### 📱 Dual Pane Layout
 - **Requirements**: Screen resolution ≥ 1920x1080
-- **Left Pane (60% width)**: Displays 4:3 vertical and square photos
-- **Right Pane (40% width)**: Displays 4:3 vertical and 16:9 vertical photos
-- **Best For**: High-resolution displays, showcasing portrait and square photos side-by-side
+- **Left Pane (60% width)**: Displays 4:3 vertical, square, or 16:9 vertical photos
+- **Right Pane (40% width)**: Displays 4:3 vertical, square, or 16:9 vertical photos
+- **Best For**: High-resolution displays, showcasing two portrait photos side-by-side with flexible placement
 - **Display Duration**: 15 seconds before rotating to next layout
 
 ### 🔄 Triple Pane Layout
@@ -71,10 +71,10 @@ The program automatically classifies photos into these aspect ratio categories:
 |--------------|---------------|-------------|--------------|
 | 21:9 | Ultra-Wide/Panoramic | Very wide landscape photos | Single pane only |
 | 16:9 | 16:9 Landscape | Wide landscape photos | Single pane, Center pane, Top right pane |
-| 9:16 | 16:9 Vertical | Tall portrait photos | Single pane, Right pane, Bottom right pane, All triple pane panes |
+| 9:16 | 16:9 Vertical | Tall portrait photos | Single pane, Both dual panes, All triple pane panes, Bottom right pane |
 | 4:3 | 4:3 Landscape | Standard landscape photos | Single pane, Center pane |
-| 3:4 | 4:3 Vertical | Standard portrait photos | Single pane, Left pane, Right pane, Bottom left pane |
-| 1:1 | Square | Square photos | Single pane, Left pane, Top left pane |
+| 3:4 | 4:3 Vertical | Standard portrait photos | Single pane, Both dual panes, Bottom left pane |
+| 1:1 | Square | Square photos | Single pane, Both dual panes, Top left pane |
 
 **Tolerance System**: Photos that are close to these ratios (within 20-30% tolerance) are automatically categorized. For example, a 3010x3000 photo will be classified as "Square" even though it's not exactly 1:1.
 
