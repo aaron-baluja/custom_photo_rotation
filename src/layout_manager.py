@@ -115,21 +115,21 @@ class LayoutManager:
                         x=0, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["4:3_vertical", "square"],
+                        photo_categories=["16:9_vertical"],
                         name="left"
                     ),
                     Pane(
                         x=pane_width, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical", "4:3_vertical"],
+                        photo_categories=["16:9_vertical"],
                         name="center"
                     ),
                     Pane(
                         x=pane_width * 2, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical", "4:3_vertical"],
+                        photo_categories=["16:9_vertical"],
                         name="right"
                     )
                 ],
