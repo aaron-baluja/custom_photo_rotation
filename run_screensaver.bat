@@ -7,7 +7,7 @@ echo.
 echo Press any key to continue...
 pause >nul
 
-python screensaver.py
+python main.py
 
 echo.
 echo Screen saver closed.

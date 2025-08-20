@@ -49,7 +49,7 @@ The program automatically classifies photos into these aspect ratio categories:
 
 3. **Run the application:**
    ```bash
-   python screensaver.py
+   python main.py
    ```
 
 ## Configuration
@@ -63,14 +63,14 @@ IMAGE_FOLDER=C:\Users\YourName\Pictures\Screensaver
 
 **Important Notes:**
 - Use forward slashes (/) or double backslashes (\\) in Windows paths
-- The config file must be in the same directory as `screensaver.py`
+- The config file must be in the same directory as `main.py`
 - If no config file exists, a default one will be created pointing to `~/Pictures/Screensaver`
 - **Recursive Search**: The program will automatically find images in all subdirectories of the specified folder
 
 ## Usage
 
 1. **Configure**: Edit `config.txt` with your image folder path
-2. **Launch**: Run `python screensaver.py`
+2. **Launch**: Run `python main.py`
 3. **Enjoy**: The screen saver automatically starts displaying images in 15-second intervals
 4. **Exit**: Press any key, click anywhere, or press Escape to exit
 
@@ -102,8 +102,28 @@ The program automatically extracts:
 - **Date Taken**: EXIF metadata if available, otherwise file modification time
 - **Filename**: Original filename for reference
 
+## Project Structure
+
+The application is organized into modular components:
+
+```
+custom_photo_rotation/
+├── src/
+│   ├── __init__.py              # Package initialization
+│   ├── photo_classifier.py      # Aspect ratio classification logic
+│   ├── photo_metadata.py        # Photo metadata extraction
+│   ├── config_manager.py        # Configuration management
+│   ├── screensaver.py           # Main application logic
+│   └── utils.py                 # Helper functions
+├── main.py                      # Application entry point
+├── config.txt                   # Configuration file
+├── requirements.txt             # Dependencies
+└── README.md                    # Documentation
+```
+
 ## Technical Details
 
+- **Modular Architecture**: Clean separation of concerns with dedicated modules
 - Built with Python tkinter for the GUI
 - Uses PIL (Pillow) for image processing and metadata extraction
 - Automatic photo classification with configurable tolerance
@@ -130,14 +150,14 @@ Switching to category: 16:9 Landscape (45 photos)
 
 ## Customization
 
-To change the display interval, modify the `15000` value (in milliseconds) in the `show_next_photo` method:
+To change the display interval, modify the `DISPLAY_INTERVAL` value in your `config.txt` file:
 
-```python
+```
 # Change from 15 seconds to 10 seconds
-self.root.after(10000, self.next_photo)  # 10 seconds
+DISPLAY_INTERVAL=10000
 ```
 
-To adjust classification tolerance, modify the `tolerance` values in the `PhotoClassifier` class:
+To adjust classification tolerance, modify the `tolerance` values in the `src/photo_classifier.py` file:
 
 ```python
 'tolerance': 0.15  # 15% tolerance instead of 10%
