@@ -5,7 +5,7 @@ A Python-based screen saver application that displays images from a configured f
 ## Features
 
 - **🎯 Multiple Layout Modes**: Single pane, dual-pane, triple-pane, and quad-pane layouts
-- **🔄 Automatic Layout Rotation**: Seamlessly rotates through different layouts every 30 seconds
+- **🔄 Automatic Layout Rotation**: Seamlessly rotates through different layouts every 15 seconds
 - **🧠 Smart Layout Selection**: Automatically chooses appropriate layouts based on screen resolution
 - **📱 Intelligent Photo Placement**: Photos are automatically placed in appropriate panes based on their aspect ratio classification
 - **⚙️ Flexible Configuration**: Easy switching between auto-rotation and specific layout modes
@@ -27,14 +27,14 @@ A Python-based screen saver application that displays images from a configured f
 - **Description**: Traditional full-screen layout that displays one photo at a time
 - **Photo Types**: All photo categories (ultra-wide, 16:9 landscape/vertical, 4:3 landscape/vertical, square)
 - **Best For**: Standard displays and traditional screen saver experience
-- **Display Duration**: 30 seconds before rotating to next layout
+- **Display Duration**: 15 seconds before rotating to next layout
 
 ### 📱 Dual Pane Layout
 - **Requirements**: Screen resolution ≥ 1920x1080
 - **Left Pane (60% width)**: Displays 4:3 vertical and square photos
 - **Right Pane (40% width)**: Displays 4:3 vertical and 16:9 vertical photos
 - **Best For**: High-resolution displays, showcasing portrait and square photos side-by-side
-- **Display Duration**: 30 seconds before rotating to next layout
+- **Display Duration**: 15 seconds before rotating to next layout
 
 ### 🔄 Triple Pane Layout
 - **Requirements**: Screen resolution ≥ 1920x1080
@@ -42,7 +42,7 @@ A Python-based screen saver application that displays images from a configured f
 - **Center Pane**: Displays 16:9 landscape and 4:3 landscape photos
 - **Right Pane**: Displays 16:9 vertical and 4:3 vertical photos
 - **Best For**: Ultra-wide displays, showcasing three different photo orientations
-- **Display Duration**: 30 seconds before rotating to next layout
+- **Display Duration**: 15 seconds before rotating to next layout
 
 ### 🎯 Quad Pane Layout (2x2 Grid)
 - **Requirements**: Screen resolution ≥ 1920x1080
@@ -51,14 +51,14 @@ A Python-based screen saver application that displays images from a configured f
 - **Bottom Left**: 4:3 vertical photos
 - **Bottom Right**: 16:9 vertical photos
 - **Best For**: High-resolution displays, showcasing four different photo types simultaneously
-- **Display Duration**: 30 seconds before rotating to next layout
+- **Display Duration**: 15 seconds before rotating to next layout
 
 ## 🚀 Layout Rotation System
 
 The screen saver now features an **automatic layout rotation system** that:
 
-- **🔄 Rotates Through Layouts**: Automatically cycles through all available layouts every 30 seconds
-- **📱 Dynamic Experience**: Each layout shows photos for 15 seconds, then rotates to the next layout
+- **🔄 Rotates Through Layouts**: Automatically cycles through all available layouts every 15 seconds
+- **📱 Dynamic Experience**: Each layout shows new photos and rotates to the next layout simultaneously
 - **⚙️ Configurable Timing**: Adjust rotation intervals via `config.txt`
 - **🎯 Smart Fallback**: Automatically falls back to single pane if other layouts aren't supported
 - **🔄 Seamless Transitions**: Smooth transitions between different layout modes
@@ -123,7 +123,7 @@ LAYOUT_TYPE=auto
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
 PHOTO_LAYOUT_CHANGE_INTERVAL=15000
-# How often the photo layout changes in milliseconds (15 seconds default)
+# How often both layout and photos change in milliseconds (15 seconds default)
 ```
 
 **Important Notes:**
@@ -252,7 +252,7 @@ LAYOUT_TYPE=dual_pane
 LAYOUT_ROTATION_ENABLED=false
 
 # Adjust rotation timing (in milliseconds)
-LAYOUT_ROTATION_INTERVAL=45000  # 45 seconds
+PHOTO_LAYOUT_CHANGE_INTERVAL=45000  # 45 seconds
 ```
 
 ### Display Timing

@@ -194,9 +194,9 @@ def demo_config_options():
     
     print("\n⚙️  Configuration Tips:")
     print("  - Set LAYOUT_TYPE=auto for dynamic layout rotation")
-    print("  - Adjust PHOTO_LAYOUT_CHANGE_INTERVAL for faster/slower layout changes")
+    print("  - Adjust PHOTO_LAYOUT_CHANGE_INTERVAL for faster/slower combined changes")
     print("  - Set LAYOUT_ROTATION_ENABLED=false to disable rotation")
-    print("  - Each layout shows photos for 15 seconds before rotating")
+    print("  - Layouts and photos change together every 15 seconds")
     
     print("\n" + "=" * 60)
 
@@ -226,7 +226,7 @@ def main():
         print("\nTo run the actual screen saver with layout rotation:")
         print("1. Edit config.txt to set LAYOUT_TYPE=auto")
         print("2. Run: python main.py")
-        print("3. Watch as layouts automatically rotate every 15 seconds!")
+        print("3. Watch as layouts and photos automatically rotate together every 15 seconds!")
         
     except Exception as e:
         print(f"❌ Demo failed with error: {e}")

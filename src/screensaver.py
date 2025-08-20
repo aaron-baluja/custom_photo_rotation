@@ -41,6 +41,8 @@ class ScreenSaver:
         self.photo_selector = None
         self.running = False
         self.layout_rotation_timer = None
+        self.photo_rotation_timer = None
+        self.is_in_photo_cycle = False  # Track if we're in a photo rotation cycle
         
         # Load config and start
         self.load_and_classify_photos()
@@ -242,18 +244,23 @@ class ScreenSaver:
         rotation_interval = self.config_manager.get_photo_layout_change_interval()
         print(f"Photo layout changes will occur every {rotation_interval/1000:.1f} seconds")
         
-        # Schedule first layout rotation
-        self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout)
+        # Schedule first combined rotation after the initial photo display period
+        # This ensures both layout and photos change together
+        initial_delay = self.config_manager.get_display_interval()
+        self.layout_rotation_timer = self.root.after(initial_delay + rotation_interval, self.rotate_layout_and_photos)
     
-    def rotate_layout(self):
-        """Rotate to the next layout"""
+    def rotate_layout_and_photos(self):
+        """Rotate to the next layout AND show new photos simultaneously"""
         if not self.running or not self.layout_manager.is_layout_rotation_enabled():
             return
         
         # Get next layout
         next_layout = self.layout_manager.rotate_to_next_layout()
         if next_layout:
-            print(f"Rotating to layout: {next_layout.name}")
+            if self.config_manager.is_debug_mode_enabled():
+                print(f"🔄 Combined rotation: {self.layout_manager.get_current_layout().name} → {next_layout.name}")
+            else:
+                print(f"Rotating to layout: {next_layout.name}")
             
             # Reorganize photos for new layout
             self.photo_selector.organize_photos_by_pane(self.photos_by_category)
@@ -264,9 +271,16 @@ class ScreenSaver:
             # Show photos in new layout
             self.show_next_photos()
             
-            # Schedule next rotation
+            # Schedule next combined rotation
             rotation_interval = self.config_manager.get_photo_layout_change_interval()
-            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout)
+            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+            
+            if self.config_manager.is_debug_mode_enabled():
+                print(f"🔄 Combined rotation scheduled in {rotation_interval/1000:.1f} seconds")
+    
+    def rotate_layout(self):
+        """Rotate to the next layout (legacy method - kept for compatibility)"""
+        self.rotate_layout_and_photos()
     
     def show_next_photos(self):
         """Display the next photos for all panes"""
@@ -291,10 +305,10 @@ class ScreenSaver:
                 if pane.name in pane_photos:
                     self.display_photo_in_pane(pane, pane_photos[pane.name])
             
-            # Schedule next photo rotation
-            display_interval = self.config_manager.get_display_interval()
-            self.root.after(display_interval, self.next_photos)
-            
+            # No need to schedule photo rotation - photos change with layouts
+            if self.config_manager.is_debug_mode_enabled():
+                print(f"📸 Photos displayed - will change with next layout rotation")
+                
         except Exception as e:
             print(f"Error displaying photos: {e}")
             self.next_photos()
@@ -396,11 +410,20 @@ class ScreenSaver:
             return image  # Return original image if overlay fails
     
     def next_photos(self):
-        """Move to the next set of photos"""
+        """Move to the next set of photos (legacy method - kept for debug mode Enter key)"""
         if not self.running:
             return
         
-        self.show_next_photos()
+        # In the new system, this triggers a combined layout+photo rotation
+        if self.layout_manager.is_layout_rotation_enabled():
+            if self.config_manager.is_debug_mode_enabled():
+                print("🔄 Debug mode: Manual trigger of combined rotation")
+            
+            # Trigger combined rotation immediately
+            self.rotate_layout_and_photos()
+        else:
+            # If no layout rotation, just show next photos
+            self.show_next_photos()
     
     def on_key_press(self, event):
         """Handle key press events"""
@@ -420,6 +443,9 @@ class ScreenSaver:
         if self.layout_rotation_timer:
             self.root.after_cancel(self.layout_rotation_timer)
             self.layout_rotation_timer = None
+        
+        # Photo rotation timer is no longer used in the new system
+        # but keep the variable for potential future use
         
         self.root.quit()
     
