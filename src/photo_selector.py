@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 from photo_metadata import PhotoMetadata
 from layout_manager import LayoutManager
 import random
+import os
 
 
 class PhotoSelector:
@@ -119,6 +120,103 @@ class PhotoSelector:
         """Check if a pane has any photos available"""
         return pane_name in self.pane_photos and len(self.pane_photos[pane_name]) > 0
     
+    def calculate_crop_value(self, photo: PhotoMetadata, pane) -> float:
+        """Calculate the crop value for a photo in a specific pane"""
+        try:
+            # Get the photo's actual aspect ratio
+            photo_ratio = photo.width / photo.height
+            
+            # Get the pane's display aspect ratio
+            pane_ratio = pane.width / pane.height
+            
+            # Calculate the crop value as the absolute difference
+            crop_value = abs(photo_ratio - pane_ratio)
+            return crop_value
+            
+        except Exception as e:
+            print(f"Error calculating crop value: {e}")
+            return 0.0
+    
+    def validate_photo_layout(self, pane_photos: Dict[str, PhotoMetadata]) -> bool:
+        """Validate that no photo has a crop value exceeding 0.2 (excludes ultra-wide photos)"""
+        layout = self.layout_manager.get_current_layout()
+        if not layout:
+            return False
+        
+        max_allowed_crop = 0.2
+        
+        for pane_name, photo in pane_photos.items():
+            # Skip validation for ultra-wide photos since they use letterboxing
+            if photo.aspect_ratio_category == "ultra_wide":
+                continue
+            
+            # Find the corresponding pane
+            pane = None
+            for p in layout.panes:
+                if p.name == pane_name:
+                    pane = p
+                    break
+            
+            if not pane:
+                continue
+            
+            # Calculate crop value for this photo in this pane
+            crop_value = self.calculate_crop_value(photo, pane)
+            
+            if crop_value > max_allowed_crop:
+                print(f"  ⚠️  Photo {os.path.basename(photo.filepath)} has crop value {crop_value:.4f} > {max_allowed_crop} in {pane_name} pane")
+                return False
+        
+        return True
+    
+    def try_alternative_photo_combinations(self, pane_photos: Dict[str, PhotoMetadata], max_attempts: int = 10) -> Dict[str, PhotoMetadata]:
+        """Try alternative photo combinations to reduce crop values"""
+        layout = self.layout_manager.get_current_layout()
+        if not layout:
+            return pane_photos
+        
+        print(f"  🔄 Trying alternative photo combinations to reduce crop values...")
+        
+        for attempt in range(max_attempts):
+            # Try to find alternative photos for each pane
+            new_pane_photos = {}
+            used_photos = set()
+            
+            for pane in layout.panes:
+                if pane.name not in self.pane_photos or not self.pane_photos[pane.name]:
+                    continue
+                
+                photos = self.pane_photos[pane.name]
+                current_index = self.pane_photo_indices.get(pane.name, 0)
+                
+                # Try a few different photos for this pane
+                for offset in range(min(5, len(photos))):
+                    try_index = (current_index + offset) % len(photos)
+                    photo = photos[try_index]
+                    
+                    if photo.filepath not in used_photos:
+                        new_pane_photos[pane.name] = photo
+                        used_photos.add(photo.filepath)
+                        break
+                
+                # If we couldn't find an alternative, use the original
+                if pane.name not in new_pane_photos and pane.name in pane_photos:
+                    new_pane_photos[pane.name] = pane_photos[pane.name]
+                    used_photos.add(pane_photos[pane.name].filepath)
+            
+            # Check if the new combination has better crop values
+            if new_pane_photos and self.validate_photo_layout(new_pane_photos):
+                print(f"  ✅ Found better photo combination on attempt {attempt + 1}")
+                return new_pane_photos
+            
+            # Update indices for next attempt
+            for pane_name in new_pane_photos:
+                if pane_name in self.pane_photo_indices:
+                    self.pane_photo_indices[pane_name] = (self.pane_photo_indices[pane_name] + 1) % len(self.pane_photos[pane_name])
+        
+        print(f"  ⚠️  Could not find better photo combination after {max_attempts} attempts")
+        return pane_photos
+    
     def get_all_pane_names(self) -> List[str]:
         """Get all pane names from the current layout"""
         if not self.layout_manager.get_current_layout():
@@ -188,24 +286,41 @@ class PhotoSelector:
             print(f"      4:3 vertical photos: {len(group_43_vertical)}")
             return self._get_default_pane_photos()
         
-        # Select photos (using current indices to maintain rotation)
-        photo_square = group_square[self.pane_photo_indices.get("dual_square", 0) % len(group_square)]
-        photo_43_vertical = group_43_vertical[self.pane_photo_indices.get("dual_43_vertical", 0) % len(group_43_vertical)]
+        # Try different photo combinations until we find one with acceptable crop values
+        max_attempts = min(len(group_square), len(group_43_vertical)) * 2
+        attempts = 0
         
-        # Randomly assign to left/right panes
-        import random
-        panes = list(layout.panes)
-        random.shuffle(panes)
+        while attempts < max_attempts:
+            # Select photos (using current indices to maintain rotation)
+            photo_square = group_square[self.pane_photo_indices.get("dual_square", 0) % len(group_square)]
+            photo_43_vertical = group_43_vertical[self.pane_photo_indices.get("dual_43_vertical", 0) % len(group_43_vertical)]
+            
+            # Randomly assign to left/right panes
+            panes = list(layout.panes)
+            random.shuffle(panes)
+            
+            pane_photos[panes[0].name] = photo_square
+            pane_photos[panes[1].name] = photo_43_vertical
+            
+            # Validate the crop values
+            if self.validate_photo_layout(pane_photos):
+                print(f"  ✅ Selected square photo: {photo_square.filepath} → {panes[0].name} pane")
+                print(f"  ✅ Selected 4:3 vertical photo: {photo_43_vertical.filepath} → {panes[1].name} pane")
+                
+                # Update indices for next rotation
+                self.pane_photo_indices["dual_square"] = (self.pane_photo_indices.get("dual_square", 0) + 1) % len(group_square)
+                self.pane_photo_indices["dual_43_vertical"] = (self.pane_photo_indices.get("dual_43_vertical", 0) + 1) % len(group_43_vertical)
+                
+                return pane_photos
+            
+            # Try next combination
+            attempts += 1
+            self.pane_photo_indices["dual_square"] = (self.pane_photo_indices.get("dual_square", 0) + 1) % len(group_square)
+            self.pane_photo_indices["dual_43_vertical"] = (self.pane_photo_indices.get("dual_43_vertical", 0) + 1) % len(group_43_vertical)
         
-        pane_photos[panes[0].name] = photo_square
-        pane_photos[panes[1].name] = photo_43_vertical
-        
-        # Update indices for next rotation
-        self.pane_photo_indices["dual_square"] = (self.pane_photo_indices.get("dual_square", 0) + 1) % len(group_square)
-        self.pane_photo_indices["dual_43_vertical"] = (self.pane_photo_indices.get("dual_43_vertical", 0) + 1) % len(group_43_vertical)
-        
-        print(f"  ✅ Selected square photo: {photo_square.filepath} → {panes[0].name} pane")
-        print(f"  ✅ Selected 4:3 vertical photo: {photo_43_vertical.filepath} → {panes[1].name} pane")
+        # If we couldn't find a good combination, use the last one but warn about crop
+        print(f"  ⚠️  Could not find photo combination with crop < 0.2 after {attempts} attempts")
+        print(f"  ⚠️  Using last combination (may have excessive cropping)")
         
         return pane_photos
     
@@ -260,5 +375,16 @@ class PhotoSelector:
         print(f"🎯 Final photo selection: {len(pane_photos)} panes filled")
         for pane_name, photo in pane_photos.items():
             print(f"  {pane_name}: {photo.aspect_ratio_category} photo")
+        
+        # Validate the crop values for the selected photos
+        if not self.validate_photo_layout(pane_photos):
+            print(f"  ⚠️  Photo layout has excessive cropping (>0.2), trying alternatives...")
+            # Try to find alternative photo combinations with better crop values
+            alternative_photos = self.try_alternative_photo_combinations(pane_photos)
+            if alternative_photos != pane_photos:
+                print(f"  ✅ Found better photo combination with reduced cropping")
+                return alternative_photos
+            else:
+                print(f"  ⚠️  Could not find better combination, continuing with current selection")
         
         return pane_photos
