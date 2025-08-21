@@ -255,27 +255,29 @@ LAYOUT_ROTATION_ENABLED=false
 PHOTO_LAYOUT_CHANGE_INTERVAL=45000  # 45 seconds
 ```
 
-### Photo Stretching Behavior
-Photos are handled differently based on their aspect ratio:
+### Photo Display Behavior
+Photos are handled differently based on their aspect ratio category:
 
 **✅ Ultra-Wide/Panoramic Photos (21:9):**
 - **Maintain aspect ratio** to preserve their cinematic appearance
-- May have black bars (letterboxing) to fit within pane boundaries
-- Designed for wide screen viewing without distortion
+- **Letterboxed** with black bars to fit within pane boundaries
+- Designed for wide screen viewing without distortion or cropping
+- Entire photo content is visible
 
 **✅ All Other Photo Types:**
-- **Stretch to completely fill** their assigned pane dimensions
-- Eliminates empty space but may distort the original aspect ratio
+- **Maintain aspect ratio** to preserve their natural appearance
+- **Cropped to fill** their assigned pane dimensions completely
+- Eliminates empty space without distorting the original aspect ratio
+- Photos are scaled up to cover the pane, then center-cropped to fit exactly
 
 **Layout-Specific Behavior:**
-- **Single Pane**: All photos fill entire screen (2560×1440)
-- **Dual Pane**: 
-  - Left pane (1536×1440): Photos stretch to fill completely
-  - Right pane (1024×1440): Photos stretch to fill completely
-- **Triple Pane**: Each pane (853×1440): Photos stretch to fill completely  
-- **Quad Pane**: Each pane (1280×720): Photos stretch to fill completely
+- **Single Pane**: All photos displayed appropriately for entire screen (2560×1440)
+- **Dual Pane**:
+  - Left pane (1536×1440): Ultra-wide letterboxed, others cropped to fill
+  - Right pane (1024×1440): Ultra-wide letterboxed, others cropped to fill
+- **Triple Pane**: Each pane (853×1440): Ultra-wide letterboxed, others cropped to fill
 
-**Note**: Ultra-wide photos preserve their natural wide format, while standard photos stretch for maximum screen utilization.
+**Note**: Ultra-wide photos preserve their natural wide format with letterboxing, while standard photos use cropping for maximum screen utilization without distortion.
 
 ### Display Timing
 To change the photo display interval within each layout:

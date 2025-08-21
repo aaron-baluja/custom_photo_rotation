@@ -12,7 +12,7 @@ from photo_metadata import PhotoMetadata
 from config_manager import ConfigManager
 from layout_manager import LayoutManager
 from photo_selector import PhotoSelector
-from utils import find_image_files, calculate_display_dimensions, print_separator
+from utils import find_image_files, calculate_display_dimensions, calculate_crop_dimensions, print_separator
 
 
 class ScreenSaver:
@@ -325,8 +325,10 @@ class ScreenSaver:
                     # Log aspect ratio error for debugging
                     if self.config_manager.is_debug_mode_enabled():
                         target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
-                        display_stretch = self.calculate_display_stretch_error(photo, pane)
-                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, Display Stretch: {display_stretch:.4f}")
+                        display_crop = self.calculate_display_crop_error(photo, pane)
+                        is_ultra_wide = photo.aspect_ratio_category == "ultra_wide"
+                        display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
+                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, {display_method}: {display_crop:.4f}")
                     self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
@@ -350,17 +352,38 @@ class ScreenSaver:
             # Load image
             image = Image.open(photo_metadata.filepath)
             
-            # Calculate display dimensions for this pane
-            # Ultra-wide photos maintain aspect ratio, others stretch to fill
+            # Handle ultra-wide photos differently - maintain aspect ratio without cropping
             is_ultra_wide = photo_metadata.aspect_ratio_category == "ultra_wide"
-            target_width, target_height = calculate_display_dimensions(
-                pane.width, pane.height,
-                photo_metadata.width, photo_metadata.height,
-                stretch_to_fill=not is_ultra_wide  # Don't stretch ultra-wide photos
-            )
             
-            # Resize image
-            image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            if is_ultra_wide:
+                # Ultra-wide photos: maintain aspect ratio (may have letterboxing)
+                target_width, target_height = calculate_display_dimensions(
+                    pane.width, pane.height,
+                    photo_metadata.width, photo_metadata.height,
+                    stretch_to_fill=False  # Don't stretch ultra-wide photos
+                )
+                # Resize image maintaining aspect ratio
+                image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            else:
+                # All other photos: use cropping to maintain aspect ratio while filling the pane
+                crop_x, crop_y, crop_width, crop_height = calculate_crop_dimensions(
+                    pane.width, pane.height,
+                    photo_metadata.width, photo_metadata.height
+                )
+                
+                # Resize image to cover the pane (may be larger than pane)
+                scale_x = pane.width / photo_metadata.width
+                scale_y = pane.height / photo_metadata.height
+                scale = max(scale_x, scale_y)
+                
+                scaled_width = int(photo_metadata.width * scale)
+                scaled_height = int(photo_metadata.height * scale)
+                
+                # Resize image
+                image = image.resize((scaled_width, scaled_height), Image.Resampling.LANCZOS)
+                
+                # Crop the image to fit the pane exactly
+                image = image.crop((crop_x, crop_y, crop_x + pane.width, crop_y + pane.height))
             
             # Add debug overlay if enabled
             if self.config_manager.is_debug_mode_enabled():
@@ -438,8 +461,8 @@ class ScreenSaver:
             print(f"Error calculating detailed aspect ratio info: {e}")
             return 0.0, 0.0, 0.0
     
-    def calculate_display_stretch_error(self, photo_metadata, pane):
-        """Calculate how much the photo is stretched when displayed in the pane"""
+    def calculate_display_crop_error(self, photo_metadata, pane):
+        """Calculate how much the photo is cropped when displayed in the pane"""
         try:
             # Get the photo's actual aspect ratio
             photo_ratio = photo_metadata.width / photo_metadata.height
@@ -477,8 +500,12 @@ class ScreenSaver:
             # Get detailed aspect ratio information
             target_ratio, actual_ratio, aspect_ratio_error = self.get_detailed_aspect_ratio_info(photo_metadata)
             
-            # Calculate display stretch error
-            display_stretch_error = self.calculate_display_stretch_error(photo_metadata, pane)
+            # Calculate display crop/letterbox error
+            display_crop_error = self.calculate_display_crop_error(photo_metadata, pane)
+            
+            # Determine display method for debug info
+            is_ultra_wide = photo_metadata.aspect_ratio_category == "ultra_wide"
+            display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
             
             # Prepare debug text
             debug_lines = [
@@ -488,7 +515,7 @@ class ScreenSaver:
                 f"Original: {photo_metadata.width}x{photo_metadata.height}",
                 f"Display: {pane.width}x{pane.height}",
                 f"Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {aspect_ratio_error:.3f}",
-                f"Display Stretch: {display_stretch_error:.4f}",
+                f"{display_method}: {display_crop_error:.4f}",
                 f"Date: {photo_metadata.get_formatted_date()}"
             ]
             

@@ -72,6 +72,47 @@ def calculate_display_dimensions(screen_width: int, screen_height: int,
         return target_width, target_height
 
 
+def calculate_crop_dimensions(screen_width: int, screen_height: int,
+                             photo_width: int, photo_height: int) -> Tuple[int, int, int, int]:
+    """Calculate dimensions for cropping a photo to fit a pane while maintaining aspect ratio
+    
+    Args:
+        screen_width: Width of the target display area
+        screen_height: Height of the target display area
+        photo_width: Original width of the photo
+        photo_height: Original height of the photo
+    
+    Returns:
+        Tuple of (crop_x, crop_y, crop_width, crop_height) for cropping the original photo
+    """
+    if photo_height == 0:
+        return 0, 0, photo_width, photo_height
+    
+    # Calculate the scaling factor to fit the photo within the pane
+    # while maintaining aspect ratio
+    scale_x = screen_width / photo_width
+    scale_y = screen_height / photo_height
+    
+    # Use the larger scale to ensure the photo covers the entire pane
+    scale = max(scale_x, scale_y)
+    
+    # Calculate the scaled dimensions
+    scaled_width = int(photo_width * scale)
+    scaled_height = int(photo_height * scale)
+    
+    # Calculate the crop area to center the photo in the pane
+    crop_x = (scaled_width - screen_width) // 2
+    crop_y = (scaled_height - screen_height) // 2
+    
+    # Ensure crop coordinates are within bounds
+    crop_x = max(0, crop_x)
+    crop_y = max(0, crop_y)
+    crop_width = min(screen_width, scaled_width - crop_x)
+    crop_height = min(screen_height, scaled_height - crop_y)
+    
+    return crop_x, crop_y, crop_width, crop_height
+
+
 def format_file_size(size_bytes: int) -> str:
     """Format file size in human-readable format"""
     if size_bytes == 0:
