@@ -324,8 +324,9 @@ class ScreenSaver:
                     photo = pane_photos[pane.name]
                     # Log aspect ratio error for debugging
                     if self.config_manager.is_debug_mode_enabled():
-                        error = self.calculate_aspect_ratio_error(photo)
-                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Error: {error:.4f}")
+                        category_error = self.calculate_aspect_ratio_error(photo)
+                        display_stretch = self.calculate_display_stretch_error(photo, pane)
+                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {category_error:.4f}, Display Stretch: {display_stretch:.4f}")
                     self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
@@ -409,6 +410,23 @@ class ScreenSaver:
             print(f"Error calculating aspect ratio error: {e}")
             return 0.0
     
+    def calculate_display_stretch_error(self, photo_metadata, pane):
+        """Calculate how much the photo is stretched when displayed in the pane"""
+        try:
+            # Get the photo's actual aspect ratio
+            photo_ratio = photo_metadata.width / photo_metadata.height
+            
+            # Get the pane's display aspect ratio
+            pane_ratio = pane.width / pane.height
+            
+            # Calculate the stretch error as the absolute difference
+            stretch_error = abs(photo_ratio - pane_ratio)
+            return stretch_error
+            
+        except Exception as e:
+            print(f"Error calculating display stretch error: {e}")
+            return 0.0
+    
     def add_debug_overlay(self, image, photo_metadata, pane):
         """Add debug metadata overlay to the image"""
         try:
@@ -431,6 +449,9 @@ class ScreenSaver:
             # Calculate aspect ratio error for the category
             aspect_ratio_error = self.calculate_aspect_ratio_error(photo_metadata)
             
+            # Calculate display stretch error
+            display_stretch_error = self.calculate_display_stretch_error(photo_metadata, pane)
+            
             # Prepare debug text
             debug_lines = [
                 f"Pane: {pane.name}",
@@ -438,7 +459,8 @@ class ScreenSaver:
                 f"Category: {photo_metadata.aspect_ratio_category}",
                 f"Original: {photo_metadata.width}x{photo_metadata.height}",
                 f"Display: {pane.width}x{pane.height}",
-                f"Aspect Ratio Error: {aspect_ratio_error:.4f}",
+                f"Category Error: {aspect_ratio_error:.4f}",
+                f"Display Stretch: {display_stretch_error:.4f}",
                 f"Date: {photo_metadata.get_formatted_date()}",
                 f"Size: {photo_metadata.get_file_size_mb():.1f}MB"
             ]
