@@ -324,9 +324,9 @@ class ScreenSaver:
                     photo = pane_photos[pane.name]
                     # Log aspect ratio error for debugging
                     if self.config_manager.is_debug_mode_enabled():
-                        category_error = self.calculate_aspect_ratio_error(photo)
+                        target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
                         display_stretch = self.calculate_display_stretch_error(photo, pane)
-                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {category_error:.4f}, Display Stretch: {display_stretch:.4f}")
+                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, Display Stretch: {display_stretch:.4f}")
                     self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
@@ -410,6 +410,34 @@ class ScreenSaver:
             print(f"Error calculating aspect ratio error: {e}")
             return 0.0
     
+    def get_detailed_aspect_ratio_info(self, photo_metadata):
+        """Get detailed aspect ratio information for debug display"""
+        try:
+            # Get the photo's actual aspect ratio
+            actual_ratio = photo_metadata.width / photo_metadata.height
+            category = photo_metadata.aspect_ratio_category
+            
+            # Define target ratios for each category
+            target_ratios = {
+                "square": 1.0,
+                "4:3_landscape": 4/3,
+                "4:3_vertical": 3/4,
+                "16:9_landscape": 16/9,
+                "16:9_vertical": 9/16,
+                "ultra_wide": 21/9
+            }
+            
+            if category in target_ratios:
+                target_ratio = target_ratios[category]
+                error = abs(actual_ratio - target_ratio)
+                return target_ratio, actual_ratio, error
+            else:
+                return 0.0, actual_ratio, 0.0  # Unknown category
+                
+        except Exception as e:
+            print(f"Error calculating detailed aspect ratio info: {e}")
+            return 0.0, 0.0, 0.0
+    
     def calculate_display_stretch_error(self, photo_metadata, pane):
         """Calculate how much the photo is stretched when displayed in the pane"""
         try:
@@ -446,8 +474,8 @@ class ScreenSaver:
                 except:
                     font = ImageFont.load_default()
             
-            # Calculate aspect ratio error for the category
-            aspect_ratio_error = self.calculate_aspect_ratio_error(photo_metadata)
+            # Get detailed aspect ratio information
+            target_ratio, actual_ratio, aspect_ratio_error = self.get_detailed_aspect_ratio_info(photo_metadata)
             
             # Calculate display stretch error
             display_stretch_error = self.calculate_display_stretch_error(photo_metadata, pane)
@@ -459,7 +487,7 @@ class ScreenSaver:
                 f"Category: {photo_metadata.aspect_ratio_category}",
                 f"Original: {photo_metadata.width}x{photo_metadata.height}",
                 f"Display: {pane.width}x{pane.height}",
-                f"Category Error: {aspect_ratio_error:.4f}",
+                f"Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {aspect_ratio_error:.3f}",
                 f"Display Stretch: {display_stretch_error:.4f}",
                 f"Date: {photo_metadata.get_formatted_date()}"
             ]
