@@ -60,16 +60,6 @@ class PhotoSelector:
         
         self.pane_photos = pane_photos
         self.used_photos.clear()  # Reset used photos tracking
-        
-        # Reset layout-specific tracking when switching layouts
-        current_layout_name = self.layout_manager.get_current_layout().name if self.layout_manager.get_current_layout() else None
-        if not hasattr(self, 'current_layout_name') or self.current_layout_name != current_layout_name:
-            self.current_layout_name = current_layout_name
-            self.current_layout_used_photos = set()
-            print(f"🔄 Reset layout tracking for new layout: {current_layout_name}")
-        elif not hasattr(self, 'current_layout_used_photos'):
-            self.current_layout_used_photos = set()
-        
         return pane_photos
     
     def get_next_photo_for_pane(self, pane_name: str) -> Optional[PhotoMetadata]:
@@ -441,10 +431,7 @@ class PhotoSelector:
         """Default photo selection using new random selection with repetition reduction and time weighting"""
         layout = self.layout_manager.get_current_layout()
         pane_photos = {}
-        
-        # Use the layout-specific tracking to prevent duplicates within the same layout
-        used_in_layout = getattr(self, 'current_layout_used_photos', set())
-        print(f"  🔍 Current layout tracking: {len(used_in_layout)} photos already used in this layout")
+        used_in_layout = set()  # Track photos used in current layout to prevent duplicates
         
         print(f"🔍 Randomly selecting unique photos for {len(layout.panes)} panes with new criteria...")
         
@@ -456,7 +443,7 @@ class PhotoSelector:
             
             selected_photo = None
             attempts = 0
-            max_attempts = 100  # Increased limit to handle more complex scenarios
+            max_attempts = 50  # Reasonable limit to prevent infinite loops
             
             while attempts < max_attempts and not selected_photo:
                 # Get available photos for each category this pane accepts
@@ -476,7 +463,6 @@ class PhotoSelector:
                 if candidate_photo.filepath not in used_in_layout:
                     selected_photo = candidate_photo
                     used_in_layout.add(candidate_photo.filepath)
-                    print(f"    🔒 Added {os.path.basename(candidate_photo.filepath)} to layout tracking")
                     pane_photos[pane.name] = selected_photo
                     
                     # Mark photo as used in its category
@@ -485,30 +471,11 @@ class PhotoSelector:
                     time_indicator = "🌟" if selected_photo.filepath in self.time_weighted_photos else "📷"
                     print(f"    ✅ {time_indicator} Selected: {os.path.basename(selected_photo.filepath)} (category: {selected_photo.aspect_ratio_category})")
                     break
-                else:
-                    # Debug info for duplicate detection
-                    print(f"    🔄 Skipping duplicate: {os.path.basename(candidate_photo.filepath)} already used in this layout")
                 
                 attempts += 1
             
             if not selected_photo:
                 print(f"    ⚠️  Could not find unique photo for {pane.name} pane after {attempts} attempts")
-                # Try to find any unused photo as fallback
-                for category in pane.photo_categories:
-                    if category in photos_by_category:
-                        for photo in photos_by_category[category]:
-                            if photo.filepath not in used_in_layout:
-                                selected_photo = photo
-                                used_in_layout.add(photo.filepath)
-                                pane_photos[pane.name] = selected_photo
-                                self.mark_photo_as_used(selected_photo)
-                                print(f"    🆘 Fallback selection: {os.path.basename(selected_photo.filepath)}")
-                                break
-                        if selected_photo:
-                            break
-        
-        # Update the layout-specific tracking
-        self.current_layout_used_photos = used_in_layout
         
         print(f"🎯 Final random photo selection: {len(pane_photos)} panes filled")
         for pane_name, photo in pane_photos.items():
