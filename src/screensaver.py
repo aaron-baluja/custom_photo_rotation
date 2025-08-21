@@ -5,6 +5,7 @@ Main screen saver application module.
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
+import time
 
 from photo_classifier import PhotoClassifier
 from photo_metadata import PhotoMetadata
@@ -43,6 +44,7 @@ class ScreenSaver:
         self.layout_rotation_timer = None
         self.photo_rotation_timer = None
         self.is_in_photo_cycle = False  # Track if we're in a photo rotation cycle
+        self.last_rotation_time = None  # Track timing for debugging
         
         # Load config and start
         self.load_and_classify_photos()
@@ -244,15 +246,31 @@ class ScreenSaver:
         rotation_interval = self.config_manager.get_photo_layout_change_interval()
         print(f"Photo layout changes will occur every {rotation_interval/1000:.1f} seconds")
         
-        # Schedule first combined rotation after the initial photo display period
-        # This ensures both layout and photos change together
-        initial_delay = self.config_manager.get_display_interval()
-        self.layout_rotation_timer = self.root.after(initial_delay + rotation_interval, self.rotate_layout_and_photos)
+        # Schedule first combined rotation using the same interval as subsequent rotations
+        # This creates consistent timing throughout the session
+        self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+        
+        if self.config_manager.is_debug_mode_enabled():
+            print(f"🔄 First rotation scheduled in {rotation_interval/1000:.1f} seconds")
     
     def rotate_layout_and_photos(self):
         """Rotate to the next layout AND show new photos simultaneously"""
         if not self.running or not self.layout_manager.is_layout_rotation_enabled():
             return
+        
+        # Cancel any existing timer to prevent overlapping rotations
+        if self.layout_rotation_timer:
+            self.root.after_cancel(self.layout_rotation_timer)
+            self.layout_rotation_timer = None
+            if self.config_manager.is_debug_mode_enabled():
+                print("🔄 Cancelled previous rotation timer")
+        
+        # Track rotation timing for debugging
+        current_time = time.time()
+        if self.last_rotation_time and self.config_manager.is_debug_mode_enabled():
+            elapsed = current_time - self.last_rotation_time
+            print(f"⏱️  Time since last rotation: {elapsed:.2f} seconds")
+        self.last_rotation_time = current_time
         
         # Get next layout
         next_layout = self.layout_manager.rotate_to_next_layout()
