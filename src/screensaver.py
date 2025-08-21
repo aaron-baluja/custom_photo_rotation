@@ -327,9 +327,12 @@ class ScreenSaver:
             image = Image.open(photo_metadata.filepath)
             
             # Calculate display dimensions for this pane
+            # Ultra-wide photos maintain aspect ratio, others stretch to fill
+            is_ultra_wide = photo_metadata.aspect_ratio_category == "ultra_wide"
             target_width, target_height = calculate_display_dimensions(
                 pane.width, pane.height,
-                photo_metadata.width, photo_metadata.height
+                photo_metadata.width, photo_metadata.height,
+                stretch_to_fill=not is_ultra_wide  # Don't stretch ultra-wide photos
             )
             
             # Resize image

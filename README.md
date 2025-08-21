@@ -166,8 +166,8 @@ PHOTO_LAYOUT_CHANGE_INTERVAL=15000
 ## Image Requirements
 
 - **Supported Formats**: JPG, JPEG, PNG only
-- **Aspect Ratio**: Images maintain their original aspect ratio when displayed
-- **Screen Fit**: Images are scaled to fit their assigned pane while preserving proportions
+- **Aspect Ratio**: Images are stretched to completely fill their assigned pane dimensions
+- **Screen Fit**: Images stretch to fill entire pane area (may distort but ensures no empty space)
 - **Search Depth**: Images are found in the specified folder and all subdirectories
 
 ## Metadata Extraction
@@ -254,6 +254,28 @@ LAYOUT_ROTATION_ENABLED=false
 # Adjust rotation timing (in milliseconds)
 PHOTO_LAYOUT_CHANGE_INTERVAL=45000  # 45 seconds
 ```
+
+### Photo Stretching Behavior
+Photos are handled differently based on their aspect ratio:
+
+**✅ Ultra-Wide/Panoramic Photos (21:9):**
+- **Maintain aspect ratio** to preserve their cinematic appearance
+- May have black bars (letterboxing) to fit within pane boundaries
+- Designed for wide screen viewing without distortion
+
+**✅ All Other Photo Types:**
+- **Stretch to completely fill** their assigned pane dimensions
+- Eliminates empty space but may distort the original aspect ratio
+
+**Layout-Specific Behavior:**
+- **Single Pane**: All photos fill entire screen (2560×1440)
+- **Dual Pane**: 
+  - Left pane (1536×1440): Photos stretch to fill completely
+  - Right pane (1024×1440): Photos stretch to fill completely
+- **Triple Pane**: Each pane (853×1440): Photos stretch to fill completely  
+- **Quad Pane**: Each pane (1280×720): Photos stretch to fill completely
+
+**Note**: Ultra-wide photos preserve their natural wide format, while standard photos stretch for maximum screen utilization.
 
 ### Display Timing
 To change the photo display interval within each layout:

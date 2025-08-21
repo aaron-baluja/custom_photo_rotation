@@ -33,24 +33,43 @@ def find_image_files(folder_path: str) -> List[str]:
 
 
 def calculate_display_dimensions(screen_width: int, screen_height: int, 
-                                photo_width: int, photo_height: int) -> Tuple[int, int]:
-    """Calculate optimal display dimensions for a photo on screen"""
+                                photo_width: int, photo_height: int, 
+                                stretch_to_fill: bool = True) -> Tuple[int, int]:
+    """Calculate display dimensions for a photo on screen
+    
+    Args:
+        screen_width: Width of the target display area
+        screen_height: Height of the target display area  
+        photo_width: Original width of the photo
+        photo_height: Original height of the photo
+        stretch_to_fill: If True, stretch photo to fill entire area (may distort)
+                       If False, maintain aspect ratio (may leave empty space)
+    
+    Returns:
+        Tuple of (target_width, target_height) for display
+    """
     if photo_height == 0:
         return screen_width, screen_height
     
-    photo_ratio = photo_width / photo_height
-    screen_ratio = screen_width / screen_height
-    
-    if screen_ratio > photo_ratio:
-        # Screen is wider than photo, fit to height
-        target_height = screen_height
-        target_width = int(target_height * photo_ratio)
+    if stretch_to_fill:
+        # Stretch photo to completely fill the pane dimensions
+        # This will distort the photo but ensure no empty space
+        return screen_width, screen_height
     else:
-        # Screen is taller than photo, fit to width
-        target_width = screen_width
-        target_height = int(target_width / photo_ratio)
-    
-    return target_width, target_height
+        # Maintain aspect ratio (original behavior)
+        photo_ratio = photo_width / photo_height
+        screen_ratio = screen_width / screen_height
+        
+        if screen_ratio > photo_ratio:
+            # Screen is wider than photo, fit to height
+            target_height = screen_height
+            target_width = int(target_height * photo_ratio)
+        else:
+            # Screen is taller than photo, fit to width
+            target_width = screen_width
+            target_height = int(target_width / photo_ratio)
+        
+        return target_width, target_height
 
 
 def format_file_size(size_bytes: int) -> str:
