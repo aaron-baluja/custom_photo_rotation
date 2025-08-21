@@ -141,11 +141,11 @@ class PhotoSelector:
         return self._get_default_pane_photos()
     
     def _get_dual_pane_photos(self) -> Dict[str, PhotoMetadata]:
-        """Special photo selection for dual pane: one 4:3/square and one 16:9 vertical"""
+        """Special photo selection for dual pane: one square and one 4:3 vertical"""
         layout = self.layout_manager.get_current_layout()
         pane_photos = {}
         
-        print(f"🔍 Selecting dual pane photos (one 4:3/square + one 16:9 vertical)...")
+        print(f"🔍 Selecting dual pane photos (one square + one 4:3 vertical)...")
         
         # Get all available photos by category
         all_photos_by_category = {}
@@ -170,42 +170,42 @@ class PhotoSelector:
                     seen_paths.add(photo.filepath)
             all_photos_by_category[category] = unique_photos
         
-        # Select one 4:3/square photo and one 16:9 vertical photo
-        group_43_square = []
-        group_169_vertical = []
+        # Select one square photo and one 4:3 vertical photo
+        group_square = []
+        group_43_vertical = []
         
         for category, photos in all_photos_by_category.items():
-            if category in ["4:3_vertical", "square"]:
-                group_43_square.extend(photos)
-            elif category == "16:9_vertical":
-                group_169_vertical.extend(photos)
+            if category == "square":
+                group_square.extend(photos)
+            elif category == "4:3_vertical":
+                group_43_vertical.extend(photos)
         
-        print(f"  📊 Available: {len(group_43_square)} 4:3/square photos, {len(group_169_vertical)} 16:9 vertical photos")
+        print(f"  📊 Available: {len(group_square)} square photos, {len(group_43_vertical)} 4:3 vertical photos")
         
-        if not group_43_square or not group_169_vertical:
+        if not group_square or not group_43_vertical:
             print(f"  ⚠️  Cannot create dual pane layout: missing photo types")
-            print(f"      4:3/square photos: {len(group_43_square)}")
-            print(f"      16:9 vertical photos: {len(group_169_vertical)}")
+            print(f"      Square photos: {len(group_square)}")
+            print(f"      4:3 vertical photos: {len(group_43_vertical)}")
             return self._get_default_pane_photos()
         
         # Select photos (using current indices to maintain rotation)
-        photo_43_square = group_43_square[self.pane_photo_indices.get("dual_43_square", 0) % len(group_43_square)]
-        photo_169_vertical = group_169_vertical[self.pane_photo_indices.get("dual_169_vertical", 0) % len(group_169_vertical)]
+        photo_square = group_square[self.pane_photo_indices.get("dual_square", 0) % len(group_square)]
+        photo_43_vertical = group_43_vertical[self.pane_photo_indices.get("dual_43_vertical", 0) % len(group_43_vertical)]
         
         # Randomly assign to left/right panes
         import random
         panes = list(layout.panes)
         random.shuffle(panes)
         
-        pane_photos[panes[0].name] = photo_43_square
-        pane_photos[panes[1].name] = photo_169_vertical
+        pane_photos[panes[0].name] = photo_square
+        pane_photos[panes[1].name] = photo_43_vertical
         
         # Update indices for next rotation
-        self.pane_photo_indices["dual_43_square"] = (self.pane_photo_indices.get("dual_43_square", 0) + 1) % len(group_43_square)
-        self.pane_photo_indices["dual_169_vertical"] = (self.pane_photo_indices.get("dual_169_vertical", 0) + 1) % len(group_169_vertical)
+        self.pane_photo_indices["dual_square"] = (self.pane_photo_indices.get("dual_square", 0) + 1) % len(group_square)
+        self.pane_photo_indices["dual_43_vertical"] = (self.pane_photo_indices.get("dual_43_vertical", 0) + 1) % len(group_43_vertical)
         
-        print(f"  ✅ Selected 4:3/square photo: {photo_43_square.filepath} → {panes[0].name} pane")
-        print(f"  ✅ Selected 16:9 vertical photo: {photo_169_vertical.filepath} → {panes[1].name} pane")
+        print(f"  ✅ Selected square photo: {photo_square.filepath} → {panes[0].name} pane")
+        print(f"  ✅ Selected 4:3 vertical photo: {photo_43_vertical.filepath} → {panes[1].name} pane")
         
         return pane_photos
     

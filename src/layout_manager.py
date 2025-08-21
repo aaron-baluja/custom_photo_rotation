@@ -87,14 +87,14 @@ class LayoutManager:
                         x=0, y=0,
                         width=left_width,
                         height=self.screen_height,
-                        photo_categories=["4:3_vertical", "square", "16:9_vertical"],
+                        photo_categories=["4:3_vertical", "square"],
                         name="left"
                     ),
                     Pane(
                         x=left_width, y=0,
                         width=right_width,
                         height=self.screen_height,
-                        photo_categories=["4:3_vertical", "square", "16:9_vertical"],
+                        photo_categories=["4:3_vertical", "square"],
                         name="right"
                     )
                 ],
