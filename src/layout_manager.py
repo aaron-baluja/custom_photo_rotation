@@ -103,33 +103,33 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-        # Triple pane layout (left, center, right)
+        # Triple Vertical layout (left, center, right)
         if self.screen_width >= 1920 and self.screen_height >= 1080:
             pane_width = self.screen_width // 3
             
             layouts.append(Layout(
-                name="Triple Pane",
+                name="Triple Vertical",
                 type=LayoutType.TRIPLE_PANE,
                 panes=[
                     Pane(
                         x=0, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical"],
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
                         name="left"
                     ),
                     Pane(
                         x=pane_width, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical"],
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
                         name="center"
                     ),
                     Pane(
                         x=pane_width * 2, y=0,
                         width=pane_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical"],
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
                         name="right"
                     )
                 ],
