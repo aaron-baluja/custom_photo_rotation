@@ -138,48 +138,7 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-        # Quad pane layout (2x2 grid)
-        if self.screen_width >= 1920 and self.screen_height >= 1080:
-            pane_width = self.screen_width // 2
-            pane_height = self.screen_height // 2
-            
-            layouts.append(Layout(
-                name="Quad Pane",
-                type=LayoutType.QUAD_PANE,
-                panes=[
-                    Pane(
-                        x=0, y=0,
-                        width=pane_width,
-                        height=pane_height,
-                        photo_categories=["square"],
-                        name="top_left"
-                    ),
-                    Pane(
-                        x=pane_width, y=0,
-                        width=pane_width,
-                        height=pane_height,
-                        photo_categories=["16:9_landscape"],
-                        name="top_right"
-                    ),
-                    Pane(
-                        x=0, y=pane_height,
-                        width=pane_width,
-                        height=pane_height,
-                        photo_categories=["4:3_vertical"],
-                        name="bottom_left"
-                    ),
-                    Pane(
-                        x=pane_width, y=pane_height,
-                        width=pane_width,
-                        height=pane_height,
-                        photo_categories=["16:9_vertical"],
-                        name="bottom_right"
-                    )
-                ],
-                total_width=self.screen_width,
-                total_height=self.screen_height,
-                display_duration=30000  # 30 seconds
-            ))
+
         
         return layouts
     
