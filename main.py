@@ -24,8 +24,6 @@ def main():
             print("🔧 DEBUG MODE ENABLED")
             print("Press Enter to advance to next photo rotation")
             print("Press Escape or any other key to exit")
-        else:
-            print("Press Escape, any key, or click to exit")
         print()
         
         app = ScreenSaver()
