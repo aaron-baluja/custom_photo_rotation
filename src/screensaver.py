@@ -461,8 +461,7 @@ class ScreenSaver:
                 f"Display: {pane.width}x{pane.height}",
                 f"Category Error: {aspect_ratio_error:.4f}",
                 f"Display Stretch: {display_stretch_error:.4f}",
-                f"Date: {photo_metadata.get_formatted_date()}",
-                f"Size: {photo_metadata.get_file_size_mb():.1f}MB"
+                f"Date: {photo_metadata.get_formatted_date()}"
             ]
             
             # Calculate text positioning (top-left corner with some padding)
