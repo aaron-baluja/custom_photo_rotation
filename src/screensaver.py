@@ -321,7 +321,12 @@ class ScreenSaver:
             # Display photos for each pane
             for pane in layout.panes:
                 if pane.name in pane_photos:
-                    self.display_photo_in_pane(pane, pane_photos[pane.name])
+                    photo = pane_photos[pane.name]
+                    # Log aspect ratio error for debugging
+                    if self.config_manager.is_debug_mode_enabled():
+                        error = self.calculate_aspect_ratio_error(photo)
+                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Error: {error:.4f}")
+                    self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
             if self.config_manager.is_debug_mode_enabled():
@@ -375,6 +380,35 @@ class ScreenSaver:
         except Exception as e:
             print(f"Error displaying photo in pane {pane.name}: {e}")
     
+    def calculate_aspect_ratio_error(self, photo_metadata):
+        """Calculate how far off the photo's aspect ratio is from its classified category"""
+        try:
+            # Get the photo's actual aspect ratio
+            actual_ratio = photo_metadata.width / photo_metadata.height
+            category = photo_metadata.aspect_ratio_category
+            
+            # Define target ratios for each category
+            target_ratios = {
+                "square": 1.0,
+                "4:3_landscape": 4/3,
+                "4:3_vertical": 3/4,
+                "16:9_landscape": 16/9,
+                "16:9_vertical": 9/16,
+                "ultra_wide": 21/9
+            }
+            
+            if category in target_ratios:
+                target_ratio = target_ratios[category]
+                # Calculate the error as the absolute difference
+                error = abs(actual_ratio - target_ratio)
+                return error
+            else:
+                return 0.0  # Unknown category
+                
+        except Exception as e:
+            print(f"Error calculating aspect ratio error: {e}")
+            return 0.0
+    
     def add_debug_overlay(self, image, photo_metadata, pane):
         """Add debug metadata overlay to the image"""
         try:
@@ -394,6 +428,9 @@ class ScreenSaver:
                 except:
                     font = ImageFont.load_default()
             
+            # Calculate aspect ratio error for the category
+            aspect_ratio_error = self.calculate_aspect_ratio_error(photo_metadata)
+            
             # Prepare debug text
             debug_lines = [
                 f"Pane: {pane.name}",
@@ -401,6 +438,7 @@ class ScreenSaver:
                 f"Category: {photo_metadata.aspect_ratio_category}",
                 f"Original: {photo_metadata.width}x{photo_metadata.height}",
                 f"Display: {pane.width}x{pane.height}",
+                f"Aspect Ratio Error: {aspect_ratio_error:.4f}",
                 f"Date: {photo_metadata.get_formatted_date()}",
                 f"Size: {photo_metadata.get_file_size_mb():.1f}MB"
             ]
