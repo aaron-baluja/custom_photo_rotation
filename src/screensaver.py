@@ -45,6 +45,7 @@ class ScreenSaver:
         self.photo_rotation_timer = None
         self.is_in_photo_cycle = False  # Track if we're in a photo rotation cycle
         self.last_rotation_time = None  # Track timing for debugging
+        self.debug_overlay_visible = False  # Toggle for debug overlay visibility
         
         # Load config and start
         self.load_and_classify_photos()
@@ -250,8 +251,7 @@ class ScreenSaver:
         # This creates consistent timing throughout the session
         self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
         
-        if self.config_manager.is_debug_mode_enabled():
-            print(f"🔄 First rotation scheduled in {rotation_interval/1000:.1f} seconds")
+        print(f"🔄 First rotation scheduled in {rotation_interval/1000:.1f} seconds")
     
     def rotate_layout_and_photos(self):
         """Rotate to the next layout AND show new photos simultaneously"""
@@ -262,12 +262,11 @@ class ScreenSaver:
         if self.layout_rotation_timer:
             self.root.after_cancel(self.layout_rotation_timer)
             self.layout_rotation_timer = None
-            if self.config_manager.is_debug_mode_enabled():
-                print("🔄 Cancelled previous rotation timer")
+            print("🔄 Cancelled previous rotation timer")
         
         # Track rotation timing for debugging
         current_time = time.time()
-        if self.last_rotation_time and self.config_manager.is_debug_mode_enabled():
+        if self.last_rotation_time:
             elapsed = current_time - self.last_rotation_time
             print(f"⏱️  Time since last rotation: {elapsed:.2f} seconds")
         self.last_rotation_time = current_time
@@ -275,10 +274,7 @@ class ScreenSaver:
         # Get next layout
         next_layout = self.layout_manager.rotate_to_next_layout()
         if next_layout:
-            if self.config_manager.is_debug_mode_enabled():
-                print(f"🔄 Combined rotation: {self.layout_manager.get_current_layout().name} → {next_layout.name}")
-            else:
-                print(f"Rotating to layout: {next_layout.name}")
+            print(f"🔄 Combined rotation: {self.layout_manager.get_current_layout().name} → {next_layout.name}")
             
             # Reorganize photos for new layout
             self.photo_selector.organize_photos_by_pane(self.photos_by_category)
@@ -293,8 +289,7 @@ class ScreenSaver:
             rotation_interval = self.config_manager.get_change_interval()
             self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
             
-            if self.config_manager.is_debug_mode_enabled():
-                print(f"🔄 Combined rotation scheduled in {rotation_interval/1000:.1f} seconds")
+            print(f"🔄 Combined rotation scheduled in {rotation_interval/1000:.1f} seconds")
     
     def rotate_layout(self):
         """Rotate to the next layout (legacy method - kept for compatibility)"""
@@ -323,17 +318,15 @@ class ScreenSaver:
                 if pane.name in pane_photos:
                     photo = pane_photos[pane.name]
                     # Log aspect ratio error for debugging
-                    if self.config_manager.is_debug_mode_enabled():
-                        target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
-                        display_crop = self.calculate_display_crop_error(photo, pane)
-                        is_ultra_wide = photo.aspect_ratio_category == "ultra_wide"
-                        display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
-                        print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, {display_method}: {display_crop:.4f}")
+                    target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
+                    display_crop = self.calculate_display_crop_error(photo, pane)
+                    is_ultra_wide = photo.aspect_ratio_category == "ultra_wide"
+                    display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
+                    print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, {display_method}: {display_crop:.4f}")
                     self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
-            if self.config_manager.is_debug_mode_enabled():
-                print(f"📸 Photos displayed - will change with next layout rotation")
+            print(f"📸 Photos displayed - will change with next layout rotation")
                 
         except Exception as e:
             print(f"Error displaying photos: {e}")
@@ -394,7 +387,7 @@ class ScreenSaver:
                 image = image.crop((crop_x, crop_y, crop_x + pane.width, crop_y + pane.height))
             
             # Add debug overlay if enabled
-            if self.config_manager.is_debug_mode_enabled():
+            if self.debug_overlay_visible:
                 image = self.add_debug_overlay(image, photo_metadata, pane)
             
             # Convert to PhotoImage
@@ -559,8 +552,7 @@ class ScreenSaver:
         
         # In the new system, this triggers a combined layout+photo rotation
         if self.layout_manager.is_layout_rotation_enabled():
-            if self.config_manager.is_debug_mode_enabled():
-                print("🔄 Debug mode: Manual trigger of combined rotation")
+            print("🔄 Manual trigger of combined rotation")
             
             # Trigger combined rotation immediately
             self.rotate_layout_and_photos()
@@ -570,9 +562,15 @@ class ScreenSaver:
     
     def on_key_press(self, event):
         """Handle key press events"""
-        # In debug mode, Enter key advances to next photo rotation
-        if self.config_manager.is_debug_mode_enabled() and event.keysym == 'Return':
-            print("🔄 Debug mode: Advancing to next photo rotation...")
+        if event.keysym == 'v' or event.keysym == 'V':
+            # Toggle debug overlay visibility
+            self.debug_overlay_visible = not self.debug_overlay_visible
+            print(f"🔍 Debug overlay {'enabled' if self.debug_overlay_visible else 'disabled'}")
+            # Refresh the display to show/hide debug overlay
+            self.show_next_photos()
+        elif event.keysym == 'Return':
+            # Enter key advances to next layout
+            print("🔄 Manual advancement to next layout...")
             self.next_photos()
         else:
             # Any other key exits the screensaver

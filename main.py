@@ -18,12 +18,12 @@ def main():
     try:
         print("Starting Custom Photo Rotation Screen Saver...")
         
-        # Check debug mode for appropriate instructions
+        # Show debug overlay controls
         config = ConfigManager()
-        if config.is_debug_mode_enabled():
-            print("🔧 DEBUG MODE ENABLED")
-            print("Press Enter to advance to next photo rotation")
-            print("Press Escape or any other key to exit")
+        print("🔍 Debug overlay controls:")
+        print("   - Press 'v' to toggle debug overlay visibility")
+        print("   - Press 'Enter' to manually advance to the next layout")
+        print("   - Press 'Escape' or click to exit")
         print()
         
         app = ScreenSaver()

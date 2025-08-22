@@ -13,6 +13,6 @@ LAYOUT_TYPE=auto
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
 
-# Debug settings
-DEBUG_MODE=true
-# Enable debug mode to show metadata overlays on photos
+# Debug overlay controls:
+# Press 'v' to toggle debug overlay visibility
+# Press 'Enter' to manually advance to the next layout

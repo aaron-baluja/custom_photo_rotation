@@ -77,7 +77,7 @@ class ConfigManager:
             self.config['FULLSCREEN'] = 'true'
             self.config['LAYOUT_TYPE'] = 'auto'
             self.config['LAYOUT_ROTATION_ENABLED'] = 'true'
-            self.config['DEBUG_MODE'] = 'false'
+
             
             print(f"Created default config file: {self.config_file}")
             
@@ -113,7 +113,7 @@ class ConfigManager:
                 f.write(f"LAYOUT_ROTATION_ENABLED={self.config.get('LAYOUT_ROTATION_ENABLED', 'true')}\n")
                 f.write("\n")
                 f.write(f"# Debug settings\n")
-                f.write(f"DEBUG_MODE={self.config.get('DEBUG_MODE', 'false')}\n")
+        
                 f.write("# Enable debug mode to show metadata overlays on photos\n")
                 
         except Exception as e:
@@ -181,13 +181,7 @@ class ConfigManager:
         """Get how often the photo layout changes in milliseconds (backward compatibility)"""
         return self.get_change_interval()
     
-    def is_debug_mode_enabled(self):
-        """Check if debug mode is enabled"""
-        return self.config.get('DEBUG_MODE', 'false').lower() == 'true'
-    
-    def set_debug_mode_enabled(self, enabled):
-        """Enable or disable debug mode"""
-        self.set('DEBUG_MODE', str(enabled).lower())
+
     
     def validate_image_folder(self):
         """Validate that the configured image folder exists"""

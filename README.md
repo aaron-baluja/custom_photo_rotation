@@ -9,7 +9,7 @@ A Python-based screen saver application that displays images from a configured f
 - **🧠 Smart Layout Selection**: Automatically chooses appropriate layouts based on screen resolution
 - **📱 Intelligent Photo Placement**: Photos are automatically placed in appropriate panes based on their aspect ratio classification
 - **⚙️ Flexible Configuration**: Easy switching between auto-rotation and specific layout modes
-- **🔧 Debug Mode**: Visual metadata overlays and manual photo advancement for testing and troubleshooting
+- **🔍 Debug Overlay System**: Toggle-able metadata overlays and manual layout advancement for testing and troubleshooting
 - **Fullscreen Display**: Runs in fullscreen mode for true screen saver experience
 - **Smart Aspect Ratio Handling**: Automatically resizes images to fit screen while maintaining their original aspect ratio
 - **15-Second Photo Intervals**: Each photo is displayed for exactly 15 seconds within each layout
@@ -292,20 +292,11 @@ To adjust classification tolerance, modify the `tolerance` values in the `src/ph
 'tolerance': 0.15  # 15% tolerance instead of 20%
 ```
 
-## Debug Mode
+## Debug Overlay System
 
-Debug mode provides visual metadata overlays and manual control for testing and troubleshooting the screen saver.
+The screen saver includes a debug overlay system that provides detailed information about photo selection and display.
 
-### Enabling Debug Mode
-
-Add or modify the following line in your `config.txt` file:
-```
-DEBUG_MODE=true
-```
-
-### Debug Mode Features
-
-When debug mode is enabled, you'll see:
+### Debug Overlay Features
 
 - **📊 Metadata Overlays**: Each photo displays a semi-transparent overlay showing:
   - **Pane**: Which pane the photo is displayed in
@@ -313,48 +304,47 @@ When debug mode is enabled, you'll see:
   - **Category**: The aspect ratio classification
   - **Original**: Original photo dimensions
   - **Display**: Pane display dimensions
+  - **Category Error**: Difference from target aspect ratio
+  - **Display Crop/Letterbox**: How much the photo is cropped or letterboxed
   - **Date**: When the photo was taken
-  - **Size**: File size in megabytes
 
 - **⌨️ Manual Control**: 
-  - **Enter Key**: Advance to the next photo rotation immediately
+  - **V Key**: Toggle debug overlay visibility on/off
+  - **Enter Key**: Advance to the next layout/photo combination immediately
   - **Escape/Other Keys**: Exit the screen saver (normal behavior)
 
-### Debug Mode Usage
+### Debug Overlay Usage
 
-1. **Enable debug mode** in `config.txt`:
-   ```
-   DEBUG_MODE=true
-   ```
-
-2. **Run the screen saver**:
+1. **Run the screen saver**:
    ```bash
    python main.py
    ```
 
-3. **You'll see enhanced startup messages**:
+2. **You'll see startup instructions**:
    ```
-   🔧 DEBUG MODE ENABLED
-   Press Enter to advance to next photo rotation
-   Press Escape or any other key to exit
+   🔍 Debug overlay controls:
+      - Press 'v' to toggle debug overlay visibility
+      - Press 'Enter' to manually advance to the next layout
+      - Press 'Escape' or click to exit
    ```
 
-4. **Test photo selection**:
-   - Press **Enter** to manually advance through photos
+3. **Test photo selection**:
+   - Press **v** to show/hide debug overlays
+   - Press **Enter** to manually advance through layouts
    - Watch the metadata overlays to verify classification
    - Observe layout rotation and pane assignments
 
-### Debug Mode Benefits
+### Debug Overlay Benefits
 
 - **Photo Classification Verification**: Confirm photos are correctly categorized
 - **Layout Testing**: Manually step through layouts to verify behavior
 - **Pane Assignment Validation**: Ensure each pane gets appropriate photo types
-- **Metadata Inspection**: Check file sizes, dates, and dimensions
+- **Metadata Inspection**: Check dimensions, crop values, and aspect ratios
 - **Troubleshooting**: Identify issues with photo selection or layout rotation
 
-### Disabling Debug Mode
+### Default State
 
-Set `DEBUG_MODE=false` in `config.txt` to return to normal screen saver operation without overlays or manual controls.
+Debug overlays are **hidden by default** and can be toggled on/off as needed during operation.
 
 ## Troubleshooting
 
@@ -363,7 +353,7 @@ Set `DEBUG_MODE=false` in `config.txt` to return to normal screen saver operatio
 - **No Supported Images**: Ensure your folder contains JPG, JPEG, or PNG files
 - **Layout Not Available**: Check that your screen resolution meets the minimum requirements (≥1920x1080)
 - **Layout Rotation Issues**: Verify `LAYOUT_ROTATION_ENABLED=true` and check `PHOTO_LAYOUT_CHANGE_INTERVAL` settings
-- **Photo Classification Issues**: Enable `DEBUG_MODE=true` to see metadata overlays and verify photo categorization
+- **Photo Classification Issues**: Press **v** to toggle debug overlays and verify photo categorization
 - **Performance Issues**: Large images may take longer to load; consider resizing them beforehand
 - **Exit Issues**: Use Ctrl+C in the terminal if the application becomes unresponsive
 
@@ -383,8 +373,7 @@ LAYOUT_TYPE=auto
 LAYOUT_ROTATION_ENABLED=true
 PHOTO_LAYOUT_CHANGE_INTERVAL=15000
 
-# Debug settings
-DEBUG_MODE=false
+
 ```
 
 **Note**: This will find all images in "Vacation Photos" and any subfolders, classify them by aspect ratio, and automatically rotate through all available layouts every 15 seconds, with each layout displaying appropriate photos for 15 seconds.
