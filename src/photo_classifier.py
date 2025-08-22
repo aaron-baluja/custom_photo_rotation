@@ -8,7 +8,7 @@ class PhotoClassifier:
     def __init__(self):
         # Define target aspect ratios with tolerance
         self.aspect_ratios = {
-            'ultra_wide': {'width': 21, 'height': 9, 'tolerance': 0.3},  # 2.33 ratio for ultra-wide/panoramic
+            'ultra_wide': {'width': 21, 'height': 9, 'tolerance': 0.15},  # Reduced from 0.3 to 0.15 for stricter ultra-wide classification
             '16:9_landscape': {'width': 16, 'height': 9, 'tolerance': 0.25},
             '16:9_vertical': {'width': 9, 'height': 16, 'tolerance': 0.2},
             '4:3_landscape': {'width': 4, 'height': 3, 'tolerance': 0.2},

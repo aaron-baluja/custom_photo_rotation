@@ -34,7 +34,16 @@ class PhotoSelector:
         
         # Initialize new selection criteria
         self.calculate_time_weighting(photos_by_category)
-        self.initialize_category_tracking(photos_by_category)
+        
+        # Only initialize category tracking if not already done, to preserve repetition reduction
+        if not hasattr(self, 'category_tracking_initialized') or not self.category_tracking_initialized:
+            self.initialize_category_tracking(photos_by_category)
+            self.category_tracking_initialized = True
+            print(f"🔧 First-time category tracking initialization")
+        else:
+            # Update available photos but preserve used photo tracking
+            self.update_category_tracking(photos_by_category)
+            print(f"🔧 Updated category tracking while preserving used photo history")
         
         pane_photos = {}
         
@@ -338,6 +347,23 @@ class PhotoSelector:
         for category, photos in self.category_available_photos.items():
             print(f"  {category}: {len(photos)} photos available")
     
+    def update_category_tracking(self, photos_by_category: Dict[str, List[PhotoMetadata]]):
+        """Update available photos while preserving used photo tracking"""
+        # Update available photos list but keep used photos tracking
+        for category, photos in photos_by_category.items():
+            # Initialize category if it doesn't exist
+            if category not in self.category_used_photos:
+                self.category_used_photos[category] = set()
+            
+            # Update available photos list
+            self.category_available_photos[category] = [photo.filepath for photo in photos]
+        
+        # Show current tracking status
+        for category in photos_by_category.keys():
+            used_count = len(self.category_used_photos.get(category, set()))
+            total_count = len(self.category_available_photos.get(category, []))
+            print(f"  {category}: {used_count}/{total_count} photos used")
+    
     def get_available_photos_for_category(self, category: str, photos_by_category: Dict[str, List[PhotoMetadata]]) -> List[PhotoMetadata]:
         """Get photos that haven't been used yet in this category, with time weighting applied"""
         if category not in photos_by_category:
@@ -369,10 +395,16 @@ class PhotoSelector:
         if category == "ultra_wide":
             # Check if ultra-wide photos have been used recently
             ultra_wide_used_recently = getattr(self, '_ultra_wide_used_count', 0)
-            if ultra_wide_used_recently > 2:  # If used more than 2 times recently
-                # Reduce weight of ultra-wide photos temporarily
+            if ultra_wide_used_recently > 1:  # Reduced from 2 to 1 for stricter control
+                # Significantly reduce weight of ultra-wide photos temporarily
                 weighted_photos = [photo for photo in weighted_photos if photo.filepath not in self.time_weighted_photos]
-                print(f"  ⚖️  Reducing ultra-wide photo weight due to recent over-use")
+                print(f"  ⚖️  Reducing ultra-wide photo weight due to recent over-use (count: {ultra_wide_used_recently})")
+            
+            # Additional penalty: ultra-wide photos get reduced weight overall
+            if len(weighted_photos) > 1:
+                # Keep only a subset to reduce selection frequency
+                weighted_photos = weighted_photos[:max(1, len(weighted_photos) // 3)]
+                print(f"  📉 Reduced ultra-wide photo selection pool from {len(weighted_photos) * 3} to {len(weighted_photos)}")
         
         return weighted_photos
     
@@ -442,7 +474,7 @@ class PhotoSelector:
                 new_ultra_wide_count = sum(1 for photo in new_pane_photos.values() if photo.aspect_ratio_category == "ultra_wide")
                 
                 # Prefer combinations with fewer ultra-wide photos (unless they're the only option)
-                ultra_wide_penalty = 0.1 * new_ultra_wide_count  # Penalty for each ultra-wide photo
+                ultra_wide_penalty = 0.2 * new_ultra_wide_count  # Increased penalty from 0.1 to 0.2
                 adjusted_new_crop = new_max_crop + ultra_wide_penalty
                 
                 # Only accept if it's significantly better OR has fewer ultra-wide photos
@@ -454,6 +486,11 @@ class PhotoSelector:
                 # Also accept if it passes validation (crop < 0.2) AND doesn't increase ultra-wide count
                 if self.validate_photo_layout(new_pane_photos) and new_ultra_wide_count <= original_ultra_wide_count:
                     print(f"  ✅ Found combination that passes crop validation on attempt {attempt + 1}")
+                    return new_pane_photos
+                
+                # Additional check: strongly prefer combinations with NO ultra-wide photos if original had none
+                if original_ultra_wide_count == 0 and new_ultra_wide_count == 0:
+                    print(f"  🎯 Found combination with no ultra-wide photos (preferred)")
                     return new_pane_photos
             
             # Update indices for next attempt
@@ -588,6 +625,15 @@ class PhotoSelector:
                     weighted_photos = self.get_available_photos_for_category(category, photos_by_category)
                     all_candidate_photos.extend(weighted_photos)
                 
+                # Prioritize non-ultra-wide photos to reduce over-selection
+                non_ultra_wide = [p for p in all_candidate_photos if p.aspect_ratio_category != "ultra_wide"]
+                ultra_wide = [p for p in all_candidate_photos if p.aspect_ratio_category == "ultra_wide"]
+                
+                # If we have non-ultra-wide options, use them preferentially
+                if non_ultra_wide and len(non_ultra_wide) > 0:
+                    all_candidate_photos = non_ultra_wide + ultra_wide  # Non-ultra-wide first
+                    print(f"    🎯 Prioritizing {len(non_ultra_wide)} non-ultra-wide photos over {len(ultra_wide)} ultra-wide options")
+                
                 if not all_candidate_photos:
                     print(f"    ⚠️  No available photos for {pane.name} pane")
                     break
@@ -671,3 +717,55 @@ class PhotoSelector:
                         return better_alternative
         
         return pane_photos
+    
+    def _find_alternative_with_fewer_ultra_wide(self, original_photos: Dict[str, PhotoMetadata], current_ultra_wide_count: int) -> Optional[Dict[str, PhotoMetadata]]:
+        """Try to find an alternative photo combination with fewer ultra-wide photos"""
+        layout = self.layout_manager.get_current_layout()
+        if not layout:
+            return None
+        
+        print(f"  🔍 Attempting to find alternative with fewer ultra-wide photos...")
+        
+        # Try to find alternatives that reduce ultra-wide count
+        for attempt in range(20):  # More attempts for this critical case
+            new_pane_photos = {}
+            used_photos = set()
+            
+            for pane in layout.panes:
+                if pane.name not in self.pane_photos or not self.pane_photos[pane.name]:
+                    continue
+                
+                photos = self.pane_photos[pane.name]
+                # Try different photos, prioritizing non-ultra-wide
+                non_ultra_wide = [p for p in photos if p.aspect_ratio_category != "ultra_wide"]
+                ultra_wide = [p for p in photos if p.aspect_ratio_category == "ultra_wide"]
+                
+                # Try non-ultra-wide first
+                for photo in non_ultra_wide:
+                    if photo.filepath not in used_photos:
+                        new_pane_photos[pane.name] = photo
+                        used_photos.add(photo.filepath)
+                        break
+                
+                # Only use ultra-wide if no other option
+                if pane.name not in new_pane_photos and ultra_wide:
+                    for photo in ultra_wide:
+                        if photo.filepath not in used_photos:
+                            new_pane_photos[pane.name] = photo
+                            used_photos.add(photo.filepath)
+                            break
+                
+                # Fallback to original if still no photo
+                if pane.name not in new_pane_photos and pane.name in original_photos:
+                    new_pane_photos[pane.name] = original_photos[pane.name]
+                    used_photos.add(original_photos[pane.name].filepath)
+            
+            if new_pane_photos:
+                new_ultra_wide_count = sum(1 for photo in new_pane_photos.values() if photo.aspect_ratio_category == "ultra_wide")
+                
+                # Accept if we reduced ultra-wide count
+                if new_ultra_wide_count < current_ultra_wide_count:
+                    print(f"    🔍 Found alternative with {new_ultra_wide_count} ultra-wide photos (reduced from {current_ultra_wide_count})")
+                    return new_pane_photos
+        
+        return None
