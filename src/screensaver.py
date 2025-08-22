@@ -243,8 +243,8 @@ class ScreenSaver:
         if not self.layout_manager.is_layout_rotation_enabled():
             return
         
-        rotation_interval = self.config_manager.get_photo_layout_change_interval()
-        print(f"Photo layout changes will occur every {rotation_interval/1000:.1f} seconds")
+        rotation_interval = self.config_manager.get_change_interval()
+        print(f"Layout and photo changes will occur every {rotation_interval/1000:.1f} seconds")
         
         # Schedule first combined rotation using the same interval as subsequent rotations
         # This creates consistent timing throughout the session
@@ -290,7 +290,7 @@ class ScreenSaver:
             self.show_next_photos()
             
             # Schedule next combined rotation
-            rotation_interval = self.config_manager.get_photo_layout_change_interval()
+            rotation_interval = self.config_manager.get_change_interval()
             self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
             
             if self.config_manager.is_debug_mode_enabled():

@@ -53,16 +53,15 @@ class ConfigManager:
                 f"IMAGE_FOLDER={default_folder}",
                 "",
                 "# Display settings",
-                "DISPLAY_INTERVAL=15000",
+                "CHANGE_INTERVAL=15000",
+                "# How often the layout and photos change in milliseconds (15 seconds default)",
                 "FULLSCREEN=true",
                 "",
                 "# Layout settings",
                 "LAYOUT_TYPE=auto",
-                "# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane",
+                "# Available layouts: auto, single_pane, dual_pane, triple_vertical",
                 "# auto = automatically rotate through all available layouts",
                 "LAYOUT_ROTATION_ENABLED=true",
-                "PHOTO_LAYOUT_CHANGE_INTERVAL=15000",
-                "# How often the photo layout changes in milliseconds (15 seconds default)",
                 "",
                 "# Debug settings",
                 "DEBUG_MODE=false",
@@ -74,11 +73,10 @@ class ConfigManager:
             
             # Set default values
             self.config['IMAGE_FOLDER'] = default_folder
-            self.config['DISPLAY_INTERVAL'] = '15000'
+            self.config['CHANGE_INTERVAL'] = '15000'
             self.config['FULLSCREEN'] = 'true'
             self.config['LAYOUT_TYPE'] = 'auto'
             self.config['LAYOUT_ROTATION_ENABLED'] = 'true'
-            self.config['PHOTO_LAYOUT_CHANGE_INTERVAL'] = '15000'
             self.config['DEBUG_MODE'] = 'false'
             
             print(f"Created default config file: {self.config_file}")
@@ -99,20 +97,20 @@ class ConfigManager:
         """Save configuration to file"""
         try:
             with open(self.config_file, 'w') as f:
+                f.write(f"# Screen Saver Configuration\n")
                 f.write(f"# Path to the folder containing your images\n")
                 f.write(f"IMAGE_FOLDER={self.config.get('IMAGE_FOLDER', '')}\n")
                 f.write("\n")
                 f.write(f"# Display settings\n")
-                f.write(f"DISPLAY_INTERVAL={self.config.get('DISPLAY_INTERVAL', '15000')}\n")
+                f.write(f"CHANGE_INTERVAL={self.config.get('CHANGE_INTERVAL', '15000')}\n")
+                f.write("# How often the layout and photos change in milliseconds (15 seconds default)\n")
                 f.write(f"FULLSCREEN={self.config.get('FULLSCREEN', 'true')}\n")
                 f.write("\n")
                 f.write(f"# Layout settings\n")
                 f.write(f"LAYOUT_TYPE={self.config.get('LAYOUT_TYPE', 'auto')}\n")
-                f.write("# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane\n")
+                f.write("# Available layouts: auto, single_pane, dual_pane, triple_vertical\n")
                 f.write("# auto = automatically rotate through all available layouts\n")
                 f.write(f"LAYOUT_ROTATION_ENABLED={self.config.get('LAYOUT_ROTATION_ENABLED', 'true')}\n")
-                f.write(f"PHOTO_LAYOUT_CHANGE_INTERVAL={self.config.get('PHOTO_LAYOUT_CHANGE_INTERVAL', '15000')}\n")
-                f.write("# How often the photo layout changes in milliseconds (15 seconds default)\n")
                 f.write("\n")
                 f.write(f"# Debug settings\n")
                 f.write(f"DEBUG_MODE={self.config.get('DEBUG_MODE', 'false')}\n")
@@ -129,10 +127,24 @@ class ConfigManager:
         """Set the image folder path"""
         self.set('IMAGE_FOLDER', folder_path)
     
-    def get_display_interval(self):
-        """Get the display interval in milliseconds"""
+    def get_change_interval(self):
+        """Get the layout and photo change interval in milliseconds"""
         try:
-            return int(self.config.get('DISPLAY_INTERVAL', '15000'))
+            # Try new setting first, fallback to old settings for backward compatibility
+            change_interval = self.config.get('CHANGE_INTERVAL')
+            if change_interval:
+                return int(change_interval)
+            
+            # Fallback to old settings if they exist
+            display_interval = self.config.get('DISPLAY_INTERVAL')
+            photo_layout_interval = self.config.get('PHOTO_LAYOUT_CHANGE_INTERVAL')
+            
+            if photo_layout_interval:
+                return int(photo_layout_interval)
+            elif display_interval:
+                return int(display_interval)
+            else:
+                return 15000
         except ValueError:
             return 15000
     
@@ -156,16 +168,18 @@ class ConfigManager:
         """Enable or disable layout rotation"""
         self.set('LAYOUT_ROTATION_ENABLED', str(enabled).lower())
     
-    def get_photo_layout_change_interval(self):
-        """Get how often the photo layout changes in milliseconds"""
-        try:
-            return int(self.config.get('PHOTO_LAYOUT_CHANGE_INTERVAL', '15000'))
-        except ValueError:
-            return 15000
+    def set_change_interval(self, interval):
+        """Set how often the layout and photos change in milliseconds"""
+        self.set('CHANGE_INTERVAL', str(interval))
     
-    def set_photo_layout_change_interval(self, interval):
-        """Set how often the photo layout changes in milliseconds"""
-        self.set('PHOTO_LAYOUT_CHANGE_INTERVAL', str(interval))
+    # Backward compatibility methods
+    def get_display_interval(self):
+        """Get the display interval in milliseconds (backward compatibility)"""
+        return self.get_change_interval()
+    
+    def get_photo_layout_change_interval(self):
+        """Get how often the photo layout changes in milliseconds (backward compatibility)"""
+        return self.get_change_interval()
     
     def is_debug_mode_enabled(self):
         """Check if debug mode is enabled"""

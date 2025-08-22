@@ -3,16 +3,15 @@
 IMAGE_FOLDER=E:\Pallu and Jakub Processed Pictures\Photo Rotation Test
 
 # Display settings
-DISPLAY_INTERVAL=15000
+CHANGE_INTERVAL=15000
+# How often the layout and photos change in milliseconds (15 seconds default)
 FULLSCREEN=true
 
 # Layout settings
 LAYOUT_TYPE=auto
-# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane
+# Available layouts: auto, single_pane, dual_pane, triple_vertical
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
-PHOTO_LAYOUT_CHANGE_INTERVAL=15000
-# How often both layout and photos change in milliseconds (15 seconds default)
 
 # Debug settings
 DEBUG_MODE=true
