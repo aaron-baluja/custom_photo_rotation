@@ -610,6 +610,30 @@ class PhotoSelector:
         # Default behavior for other layouts
         return self._get_default_pane_photos()
     
+    def get_current_photos_for_all_panes(self) -> Dict[str, PhotoMetadata]:
+        """Get the current photos for all panes without advancing indices (for display refresh)"""
+        if not self.layout_manager.get_current_layout():
+            return {}
+        
+        # Return the photos that were last selected and displayed
+        # This method is used for refreshing the display without changing photos
+        if hasattr(self, 'last_displayed_photos') and self.last_displayed_photos:
+            return self.last_displayed_photos.copy()
+        
+        # Fallback: if no last_displayed_photos, try to get from current pane_photos
+        # This handles the case where refresh is called before photos are displayed
+        if hasattr(self, 'pane_photos') and self.pane_photos:
+            fallback_photos = {}
+            for pane_name, photos in self.pane_photos.items():
+                if photos and hasattr(self, 'pane_photo_indices') and pane_name in self.pane_photo_indices:
+                    current_index = self.pane_photo_indices[pane_name]
+                    if current_index < len(photos):
+                        fallback_photos[pane_name] = photos[current_index]
+            return fallback_photos
+        
+        # Final fallback: return empty dict if no photos were displayed yet
+        return {}
+    
     def _get_dual_pane_photos(self) -> Dict[str, PhotoMetadata]:
         """Special photo selection for dual pane: one square and one 4:3 vertical using new criteria"""
         layout = self.layout_manager.get_current_layout()
@@ -663,6 +687,9 @@ class PhotoSelector:
                 
                 print(f"  ✅ {square_indicator} Selected square photo: {os.path.basename(photo_square.filepath)} → {panes[0].name} pane")
                 print(f"  ✅ {vertical_indicator} Selected 4:3 vertical photo: {os.path.basename(photo_43_vertical.filepath)} → {panes[1].name} pane")
+                
+                # Store the photos that will be displayed for refresh operations
+                self.last_displayed_photos = pane_photos.copy()
                 
                 return pane_photos
             
@@ -768,6 +795,9 @@ class PhotoSelector:
         
         # Store original photos for comparison
         self._original_selected_photos = pane_photos.copy()
+        
+        # Store the photos that will be displayed for refresh operations
+        self.last_displayed_photos = pane_photos.copy()
         
         # Validate the crop values for the selected photos
         if not self.validate_photo_layout(pane_photos):

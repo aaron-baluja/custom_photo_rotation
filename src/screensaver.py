@@ -47,6 +47,12 @@ class ScreenSaver:
         self.last_rotation_time = None  # Track timing for debugging
         self.debug_overlay_visible = False  # Toggle for debug overlay visibility
         
+        # Enhanced debug logging variables
+        self.is_collecting_issue_text = False  # Track if we're collecting issue description
+        self.issue_text_buffer = ""  # Buffer for collecting issue description text
+        self.issue_start_time = None  # When issue reporting started
+        self.currently_displayed_photos = {}  # Store photos that are currently displayed on screen
+        
         # Load config and start
         self.load_and_classify_photos()
     
@@ -313,6 +319,9 @@ class ScreenSaver:
             # Get unique photos for all panes simultaneously
             pane_photos = self.photo_selector.get_unique_photos_for_all_panes()
             
+            # Store the photos that are about to be displayed for refresh operations
+            self.currently_displayed_photos = pane_photos.copy()
+            
             # Display photos for each pane
             for pane in layout.panes:
                 if pane.name in pane_photos:
@@ -331,6 +340,45 @@ class ScreenSaver:
         except Exception as e:
             print(f"Error displaying photos: {e}")
             self.next_photos()
+    
+    def refresh_display(self):
+        """Refresh the display with current photos and debug overlay state (no new photos)"""
+        if not self.running or not self.photo_selector:
+            return
+        
+        try:
+            # Clear existing content
+            for widget in self.root.winfo_children():
+                widget.destroy()
+            
+            # Get current layout
+            layout = self.layout_manager.get_current_layout()
+            if not layout:
+                return
+            
+            # Use the photos that are currently displayed on screen
+            if hasattr(self, 'currently_displayed_photos') and self.currently_displayed_photos:
+                pane_photos = self.currently_displayed_photos.copy()
+            else:
+                # Fallback: get current photos from photo selector
+                pane_photos = self.photo_selector.get_current_photos_for_all_panes()
+            
+            # Display current photos for each pane
+            for pane in layout.panes:
+                if pane.name in pane_photos:
+                    photo = pane_photos[pane.name]
+                    # Log aspect ratio error for debugging
+                    target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
+                    display_crop = self.calculate_display_crop_error(photo, pane)
+                    is_ultra_wide = photo.aspect_ratio_category == "ultra_wide"
+                    display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
+                    print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, {display_method}: {display_crop:.4f}")
+                    self.display_photo_in_pane(pane, photo)
+            
+            print(f"🔄 Display refreshed with current photos and debug overlay {'ON' if self.debug_overlay_visible else 'OFF'}")
+                
+        except Exception as e:
+            print(f"Error refreshing display: {e}")
     
     def display_photo_in_pane(self, pane, photo_metadata=None):
         """Display a photo in a specific pane"""
@@ -537,6 +585,157 @@ class ScreenSaver:
             print(f"Error adding debug overlay: {e}")
             return image  # Return original image if overlay fails
     
+    def start_issue_reporting(self):
+        """Start collecting issue description text from user"""
+        from datetime import datetime
+        
+        if not self.is_collecting_issue_text:
+            # First Left Control press - start issue reporting
+            self.is_collecting_issue_text = True
+            self.issue_text_buffer = ""
+            self.issue_start_time = datetime.now()
+            
+            # Store the original debug overlay state to restore later
+            self.original_debug_overlay_state = self.debug_overlay_visible
+            
+            # Automatically show debug overlay if it was hidden
+            if not self.debug_overlay_visible:
+                self.debug_overlay_visible = True
+                print("🔍 Debug overlay automatically enabled for issue reporting")
+            
+            # Pause the photo rotation timer
+            if self.layout_rotation_timer:
+                self.root.after_cancel(self.layout_rotation_timer)
+                self.layout_rotation_timer = None
+                print("⏸️  Photo rotation timer paused for issue reporting")
+            
+            current_layout = self.layout_manager.get_current_layout()
+            layout_name = current_layout.name if current_layout else "Unknown"
+            
+            print("=" * 80)
+            print(f"🚩 ISSUE REPORTING STARTED - {self.issue_start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+            print(f"   Current Layout: {layout_name}")
+            print(f"   Debug Overlay: VISIBLE (auto-enabled for issue reporting)")
+            print(f"   Original Debug State: {'VISIBLE' if self.original_debug_overlay_state else 'HIDDEN'}")
+            print("   Type your issue description, then press LEFT CONTROL to finish")
+            print("   (Timer is paused - photos won't change while typing)")
+            print("=" * 80)
+            
+            # Refresh the display to show debug overlay
+            self.refresh_display()
+        else:
+            # Second Left Control press - finish issue reporting
+            self.finish_issue_reporting()
+    
+    def handle_issue_text_input(self, event):
+        """Handle text input while collecting issue description"""
+        if event.keysym == 'Control_L':
+            # Left Control key pressed again - finish issue reporting
+            self.finish_issue_reporting()
+        elif event.keysym == 'BackSpace':
+            # Handle backspace
+            if self.issue_text_buffer:
+                self.issue_text_buffer = self.issue_text_buffer[:-1]
+                print(f"\r   Issue text: {self.issue_text_buffer}", end="", flush=True)
+        elif event.keysym == 'Return':
+            # Handle Enter key - add newline to text
+            self.issue_text_buffer += "\n"
+            print(f"\n   Issue text: {self.issue_text_buffer}", end="", flush=True)
+        elif event.keysym == 'Escape':
+            # Cancel issue reporting
+            self.cancel_issue_reporting()
+        elif len(event.keysym) == 1:
+            # Regular character input
+            self.issue_text_buffer += event.char
+            print(f"\r   Issue text: {self.issue_text_buffer}", end="", flush=True)
+    
+    def finish_issue_reporting(self):
+        """Finish collecting issue description and resume normal operation"""
+        from datetime import datetime
+        
+        if not self.is_collecting_issue_text:
+            return
+        
+        end_time = datetime.now()
+        duration = (end_time - self.issue_start_time).total_seconds()
+        
+        # Log the complete issue report
+        print("\n" + "=" * 80)
+        print(f"🚩 ISSUE REPORT COMPLETED - {end_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
+        print(f"   Duration: {duration:.2f} seconds")
+        print(f"   Issue Description:")
+        if self.issue_text_buffer.strip():
+            # Split by lines and indent each line
+            lines = self.issue_text_buffer.strip().split('\n')
+            for line in lines:
+                print(f"     {line}")
+        else:
+            print("     (No description provided)")
+        print("=" * 80)
+        
+        # Restore original debug overlay state
+        if hasattr(self, 'original_debug_overlay_state'):
+            if self.debug_overlay_visible != self.original_debug_overlay_state:
+                self.debug_overlay_visible = self.original_debug_overlay_state
+                print(f"🔍 Debug overlay restored to {'VISIBLE' if self.original_debug_overlay_state else 'HIDDEN'} (original state)")
+                # Refresh the display to show/hide debug overlay
+                self.refresh_display()
+        
+        # Reset issue reporting state
+        self.is_collecting_issue_text = False
+        self.issue_text_buffer = ""
+        self.issue_start_time = None
+        
+        # Resume the photo rotation timer
+        if self.layout_manager.is_layout_rotation_enabled():
+            rotation_interval = self.config_manager.get_change_interval()
+            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+            print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
+    
+    def cancel_issue_reporting(self):
+        """Cancel issue reporting and resume normal operation"""
+        if not self.is_collecting_issue_text:
+            return
+        
+        print("\n❌ Issue reporting cancelled")
+        
+        # Restore original debug overlay state
+        if hasattr(self, 'original_debug_overlay_state'):
+            if self.debug_overlay_visible != self.original_debug_overlay_state:
+                self.debug_overlay_visible = self.original_debug_overlay_state
+                print(f"🔍 Debug overlay restored to {'VISIBLE' if self.original_debug_overlay_state else 'HIDDEN'} (original state)")
+                # Refresh the display to show/hide debug overlay
+                self.refresh_display()
+        
+        # Reset issue reporting state
+        self.is_collecting_issue_text = False
+        self.issue_text_buffer = ""
+        self.issue_start_time = None
+        
+        # Resume the photo rotation timer
+        if self.layout_manager.is_layout_rotation_enabled():
+            rotation_interval = self.config_manager.get_change_interval()
+            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+            print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
+    
+    def add_debug_marker(self):
+        """Add a timestamp marker to the console log for issue reporting (legacy method)"""
+        from datetime import datetime
+        
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]  # Include milliseconds
+        current_layout = self.layout_manager.get_current_layout()
+        layout_name = current_layout.name if current_layout else "Unknown"
+        
+        print("=" * 80)
+        print(f"🚩 USER ISSUE MARKER - {current_time}")
+        print(f"   Current Layout: {layout_name}")
+        if self.debug_overlay_visible:
+            print(f"   Debug Overlay: VISIBLE")
+        else:
+            print(f"   Debug Overlay: HIDDEN")
+        print("   Press spacebar again to add another marker")
+        print("=" * 80)
+    
     def next_photos(self):
         """Move to the next set of photos (legacy method - kept for debug mode Enter key)"""
         if not self.running:
@@ -554,16 +753,22 @@ class ScreenSaver:
     
     def on_key_press(self, event):
         """Handle key press events"""
-        if event.keysym == 'v' or event.keysym == 'V':
+        if self.is_collecting_issue_text:
+            # We're collecting issue text - handle text input
+            self.handle_issue_text_input(event)
+        elif event.keysym == 'v' or event.keysym == 'V':
             # Toggle debug overlay visibility
             self.debug_overlay_visible = not self.debug_overlay_visible
             print(f"🔍 Debug overlay {'enabled' if self.debug_overlay_visible else 'disabled'}")
             # Refresh the display to show/hide debug overlay
-            self.show_next_photos()
+            self.refresh_display()
         elif event.keysym == 'Return':
             # Enter key advances to next layout
             print("🔄 Manual advancement to next layout...")
             self.next_photos()
+        elif event.keysym == 'Control_L':
+            # Left Control key starts issue reporting mode
+            self.start_issue_reporting()
         else:
             # Any other key exits the screensaver
             self.exit_screensaver()

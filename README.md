@@ -311,7 +311,10 @@ The screen saver includes a debug overlay system that provides detailed informat
 - **⌨️ Manual Control**: 
   - **V Key**: Toggle debug overlay visibility on/off
   - **Enter Key**: Advance to the next layout/photo combination immediately
-  - **Escape/Other Keys**: Exit the screen saver (normal behavior)
+  - **Left Control**: Start issue reporting mode (timer pauses, photos stop changing)
+  - **Left Control (again)**: Finish issue reporting and resume normal operation
+  - **Escape**: Cancel issue reporting and resume normal operation
+  - **Other Keys**: Exit the screen saver (normal behavior)
 
 ### Debug Overlay Usage
 
@@ -325,12 +328,16 @@ The screen saver includes a debug overlay system that provides detailed informat
    🔍 Debug overlay controls:
       - Press 'v' to toggle debug overlay visibility
       - Press 'Enter' to manually advance to the next layout
+      - Press 'Left Control' to start issue reporting (timer pauses)
+      - Press 'Left Control' again to finish issue reporting (timer resumes)
       - Press 'Escape' or click to exit
    ```
 
 3. **Test photo selection**:
    - Press **v** to show/hide debug overlays
    - Press **Enter** to manually advance through layouts
+   - Press **Left Control** to start issue reporting (photos stop changing)
+   - Type your issue description, then press **Left Control** again to finish
    - Watch the metadata overlays to verify classification
    - Observe layout rotation and pane assignments
 
@@ -340,7 +347,38 @@ The screen saver includes a debug overlay system that provides detailed informat
 - **Layout Testing**: Manually step through layouts to verify behavior
 - **Pane Assignment Validation**: Ensure each pane gets appropriate photo types
 - **Metadata Inspection**: Check dimensions, crop values, and aspect ratios
+- **Issue Reporting**: Collect detailed issue descriptions with timestamps and pause photo rotation
 - **Troubleshooting**: Identify issues with photo selection or layout rotation
+
+### Enhanced Issue Reporting
+
+The screen saver includes an advanced issue reporting system that allows users to document problems in detail:
+
+#### **How It Works:**
+1. **Press Left Control** when you notice an issue - this pauses the photo rotation timer
+2. **Type your description** of what went wrong (supports multi-line text)
+3. **Press Left Control again** to finish and resume normal operation
+4. **Press Escape** to cancel issue reporting and resume immediately
+
+#### **Features:**
+- **Timer Pause**: Photos stop changing while you're typing, preventing the issue from disappearing
+- **Real-time Typing**: See your text as you type with live feedback
+- **Multi-line Support**: Use Enter key for line breaks in your description
+- **Duration Tracking**: Records how long you spent documenting the issue
+- **Context Preservation**: Captures current layout and debug overlay state
+- **Comprehensive Logging**: All issue reports are saved with timestamps and descriptions
+
+#### **Example Issue Report:**
+```
+================================================================================
+🚩 ISSUE REPORT COMPLETED - 2025-08-21 21:46:58.917
+   Duration: 12.34 seconds
+   Issue Description:
+     Photo IMG_1234.jpg appeared twice in the same layout
+     This happened during the Dual Pane layout
+     The photo was shown in both left and right panes
+================================================================================
+```
 
 ### Default State
 

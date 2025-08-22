@@ -16,3 +16,5 @@ LAYOUT_ROTATION_ENABLED=true
 # Debug overlay controls:
 # Press 'v' to toggle debug overlay visibility
 # Press 'Enter' to manually advance to the next layout
+# Press 'Left Control' to start issue reporting (timer pauses)
+# Press 'Left Control' again to finish issue reporting (timer resumes)

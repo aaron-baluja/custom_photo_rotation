@@ -23,6 +23,8 @@ def main():
         print("🔍 Debug overlay controls:")
         print("   - Press 'v' to toggle debug overlay visibility")
         print("   - Press 'Enter' to manually advance to the next layout")
+        print("   - Press 'Left Control' to start issue reporting (timer pauses)")
+        print("   - Press 'Left Control' again to finish issue reporting (timer resumes)")
         print("   - Press 'Escape' or click to exit")
         print()
         
