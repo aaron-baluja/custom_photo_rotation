@@ -441,6 +441,19 @@ class PhotoSelector:
         # Count ultra-wide photos in original selection
         original_ultra_wide_count = sum(1 for photo in pane_photos.values() if photo.aspect_ratio_category == "ultra_wide")
         
+        # Track which photos we've already tried to avoid infinite loops
+        tried_combinations = set()
+        tried_photos = set()  # Track individual photos to prevent repetition
+        
+        # CRITICAL: Track photos that have been used in the current layout to prevent repetition
+        layout_used_photos = getattr(self, 'current_layout_used_photos', set()).copy()
+        
+        # CRITICAL: Add debug logging to see what's happening
+        print(f"  🔍 Debug: layout_used_photos contains {len(layout_used_photos)} photos")
+        if layout_used_photos:
+            sample_photos = list(layout_used_photos)[:3]
+            print(f"  🔍 Debug: Sample layout used photos: {[os.path.basename(p) for p in sample_photos]}")
+        
         for attempt in range(max_attempts):
             # Try to find alternative photos for each pane
             new_pane_photos = {}
@@ -451,30 +464,99 @@ class PhotoSelector:
                     continue
                 
                 photos = self.pane_photos[pane.name]
-                current_index = self.pane_photo_indices.get(pane.name, 0)
                 
-                # Try a few different photos for this pane
-                for offset in range(min(5, len(photos))):
-                    try_index = (current_index + offset) % len(photos)
-                    photo = photos[try_index]
-                    
+                # Try a few different photos for this pane, avoiding the original selection
+                original_photo = pane_photos.get(pane.name)
+                alternative_found = False
+                
+                            # Create a randomized list of photos to try, excluding the original, previously tried photos, photos used in current layout, AND photos already used in their category
+            available_photos = []
+            for p in photos:
+                if p.filepath == original_photo.filepath:
+                    continue  # Skip original photo
+                if p.filepath in tried_photos:
+                    continue  # Skip previously tried photos
+                if p.filepath in layout_used_photos:
+                    continue  # Skip photos used in current layout
+                if p.filepath in self.category_used_photos.get(p.aspect_ratio_category, set()):
+                    continue  # Skip photos already used in their category
+                available_photos.append(p)
+            
+            if not available_photos and original_photo:
+                # If no photos available after all exclusions, fall back to excluding only layout and tried photos
+                available_photos = [p for p in photos if p.filepath != original_photo.filepath and p.filepath not in tried_photos and p.filepath not in layout_used_photos]
+                
+                            # CRITICAL: Add debug logging to see what's being excluded
+            excluded_count = len(photos) - len(available_photos)
+            print(f"  🔍 Debug: Pane {pane.name}: {len(photos)} total photos, {len(available_photos)} available after exclusions ({excluded_count} excluded)")
+            if excluded_count > 0:
+                excluded_photos = [p for p in photos if p.filepath not in available_photos]
+                sample_excluded = [os.path.basename(p.filepath) for p in excluded_photos[:3]]
+                print(f"  🔍 Debug: Sample excluded photos: {sample_excluded}")
+                
+                # Show breakdown of why photos were excluded
+                original_excluded = 1 if original_photo else 0
+                tried_excluded = len([p for p in photos if p.filepath in tried_photos])
+                layout_excluded = len([p for p in photos if p.filepath in layout_used_photos])
+                category_excluded = len([p for p in photos if p.filepath in self.category_used_photos.get(p.aspect_ratio_category, set())])
+                print(f"  🔍 Debug: Exclusion breakdown: Original={original_excluded}, Tried={tried_excluded}, Layout={layout_excluded}, Category={category_excluded}")
+                
+                if len(available_photos) > 1:
+                    # Randomly shuffle the available photos to ensure variety
+                    import random
+                    random.shuffle(available_photos)
+                
+                for photo in available_photos[:min(10, len(available_photos))]:
+                    # Skip if we've already used this photo in this attempt
                     if photo.filepath not in used_photos:
                         new_pane_photos[pane.name] = photo
                         used_photos.add(photo.filepath)
+                        tried_photos.add(photo.filepath)  # Mark as tried
+                        alternative_found = True
+                        print(f"  🔍 Debug: Selected alternative photo: {os.path.basename(photo.filepath)}")
                         break
                 
                 # If we couldn't find an alternative, use the original
-                if pane.name not in new_pane_photos and pane.name in pane_photos:
+                if not alternative_found and pane.name in pane_photos:
                     new_pane_photos[pane.name] = pane_photos[pane.name]
                     used_photos.add(pane_photos[pane.name].filepath)
+            
+            # Create a unique identifier for this combination to avoid infinite loops
+            combination_key = tuple(sorted((pane, photo.filepath) for pane, photo in new_pane_photos.items()))
+            if combination_key in tried_combinations:
+                print(f"  🔄 Skipping duplicate combination on attempt {attempt + 1}")
+                # Update indices for next attempt
+                for pane_name in new_pane_photos:
+                    if pane_name in self.pane_photos:
+                        if pane_name in self.pane_photo_indices:
+                            self.pane_photo_indices[pane_name] = (self.pane_photo_indices[pane_name] + 1) % len(self.pane_photos[pane_name])
+                continue
+            
+            tried_combinations.add(combination_key)
             
             # Check if the new combination has better crop values
             if new_pane_photos:
                 new_max_crop = self._calculate_max_crop_value(new_pane_photos)
                 new_ultra_wide_count = sum(1 for photo in new_pane_photos.values() if photo.aspect_ratio_category == "ultra_wide")
                 
+                # CRITICAL FIX: Only accept if it's actually different from the original
+                is_different = False
+                for pane_name, photo in new_pane_photos.items():
+                    if pane_name in pane_photos and photo.filepath != pane_photos[pane_name].filepath:
+                        is_different = True
+                        break
+                
+                if not is_different:
+                    print(f"  ⚠️  Alternative combination is identical to original, skipping")
+                    # Update indices for next attempt
+                    for pane_name in new_pane_photos:
+                        if pane_name in self.pane_photos:
+                            if pane_name in self.pane_photo_indices:
+                                self.pane_photo_indices[pane_name] = (self.pane_photo_indices[pane_name] + 1) % len(self.pane_photos[pane_name])
+                    continue
+                
                 # Prefer combinations with fewer ultra-wide photos (unless they're the only option)
-                ultra_wide_penalty = 0.2 * new_ultra_wide_count  # Increased penalty from 0.1 to 0.2
+                ultra_wide_penalty = 0.3 * new_ultra_wide_count  # Increased penalty from 0.2 to 0.3
                 adjusted_new_crop = new_max_crop + ultra_wide_penalty
                 
                 # Only accept if it's significantly better OR has fewer ultra-wide photos
