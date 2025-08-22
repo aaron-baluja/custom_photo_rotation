@@ -2,6 +2,7 @@
 Layout management module for different screen layouts.
 """
 
+import random
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -217,20 +218,55 @@ class LayoutManager:
         return self.get_layout(layout_name) is not None
     
     def get_next_layout(self) -> Optional[Layout]:
-        """Get the next layout in rotation"""
+        """Get the next layout using weighted random selection"""
         if not self.available_layouts:
             return None
         
-        next_index = (self.current_layout_index + 1) % len(self.available_layouts)
-        return self.available_layouts[next_index]
+        # Use weighted random selection instead of sequential rotation
+        return self._get_random_layout_by_weight()
     
     def rotate_to_next_layout(self) -> Optional[Layout]:
-        """Rotate to the next layout and return it"""
+        """Rotate to a randomly selected layout based on weights and return it"""
         next_layout = self.get_next_layout()
         if next_layout:
-            self.current_layout = next_layout
-            self.current_layout_index = (self.current_layout_index + 1) % len(self.available_layouts)
+            # Find the index of the selected layout
+            for i, layout in enumerate(self.available_layouts):
+                if layout.name == next_layout.name:
+                    self.current_layout = next_layout
+                    self.current_layout_index = i
+                    break
         return next_layout
+    
+    def _get_random_layout_by_weight(self) -> Optional[Layout]:
+        """Select a random layout based on weighted probabilities"""
+        if not self.available_layouts:
+            return None
+        
+        # Define layout weights based on user requirements
+        layout_weights = {
+            "Single Pane": 78,      # 78% probability
+            "Dual Pane": 12,        # 12% probability  
+            "Triple Vertical": 10   # 10% probability
+        }
+        
+        # Create a list of layouts with their weights
+        weighted_layouts = []
+        for layout in self.available_layouts:
+            weight = layout_weights.get(layout.name, 0)
+            if weight > 0:
+                weighted_layouts.extend([layout] * weight)
+        
+        if not weighted_layouts:
+            # Fallback to uniform random selection if no weights match
+            return random.choice(self.available_layouts)
+        
+        # Select a random layout based on weights
+        selected_layout = random.choice(weighted_layouts)
+        
+        # Debug logging
+        print(f"🎲 Weighted layout selection: {selected_layout.name} (weights: Single=78%, Dual=12%, Triple=10%)")
+        
+        return selected_layout
     
     def get_photo_categories_for_pane(self, pane_name: str) -> List[str]:
         """Get photo categories that can be displayed in a specific pane"""
