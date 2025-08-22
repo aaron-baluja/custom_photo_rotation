@@ -776,6 +776,10 @@ class PhotoSelector:
             alternative_photos = self.try_alternative_photo_combinations(pane_photos)
             if alternative_photos != pane_photos:
                 print(f"  ✅ Found better photo combination with reduced cropping")
+                # CRITICAL FIX: Update current_layout_used_photos with the alternative photos
+                self.current_layout_used_photos = set()  # Reset first
+                for photo in alternative_photos.values():
+                    self.current_layout_used_photos.add(photo.filepath)
                 return alternative_photos
             else:
                 print(f"  ⚠️  Could not find better combination, continuing with current selection")
