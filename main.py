@@ -11,12 +11,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from screensaver import ScreenSaver
 from config_manager import ConfigManager
+from logger import log_startup, log_shutdown, close_logger
 
 
 def main():
     """Main application entry point"""
     try:
-        print("Starting Custom Photo Rotation Screen Saver...")
+        # Initialize logging system
+        log_startup()
         
         # Show debug overlay controls
         config = ConfigManager()
@@ -36,6 +38,10 @@ def main():
     except Exception as e:
         print(f"Error starting application: {e}")
         sys.exit(1)
+    finally:
+        # Ensure logging is properly closed
+        log_shutdown()
+        close_logger()
 
 
 if __name__ == "__main__":

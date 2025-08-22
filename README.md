@@ -10,6 +10,7 @@ A Python-based screen saver application that displays images from a configured f
 - **📱 Intelligent Photo Placement**: Photos are automatically placed in appropriate panes based on their aspect ratio classification
 - **⚙️ Flexible Configuration**: Easy switching between auto-rotation and specific layout modes
 - **🔍 Debug Overlay System**: Toggle-able metadata overlays and manual layout advancement for testing and troubleshooting
+- **📝 Comprehensive Logging**: Automatic log file creation with timestamped filenames
 - **Fullscreen Display**: Runs in fullscreen mode for true screen saver experience
 - **Smart Aspect Ratio Handling**: Automatically resizes images to fit screen while maintaining their original aspect ratio
 - **15-Second Photo Intervals**: Each photo is displayed for exactly 15 seconds within each layout
@@ -350,6 +351,36 @@ The screen saver includes a debug overlay system that provides detailed informat
 - **Issue Reporting**: Collect detailed issue descriptions with timestamps and pause photo rotation
 - **Troubleshooting**: Identify issues with photo selection or layout rotation
 
+### Comprehensive Logging System
+
+The screen saver automatically creates detailed log files for debugging and monitoring:
+
+#### **Log File Features:**
+- **Automatic Creation**: Creates a `logs/` folder if it doesn't exist
+- **Timestamped Filenames**: Each run creates a new log file with format `photo_rotation_YYYYMMDD_HHMMSS.log`
+- **Dual Output**: All console output is simultaneously written to both console and log file
+- **Complete Session Recording**: Captures everything from startup to shutdown
+- **Issue Report Logging**: All issue reports and debug information are preserved
+- **Error Tracking**: Exceptions and errors are logged with full context
+
+#### **Log File Location:**
+```
+logs/
+├── photo_rotation_20250821_230240.log
+├── photo_rotation_20250821_231500.log
+└── ...
+```
+
+#### **Log Content Includes:**
+- Startup and shutdown timestamps
+- Photo classification summaries
+- Layout rotation events
+- Photo selection details
+- Debug overlay toggles
+- Issue reporting sessions
+- Error messages and exceptions
+- Performance metrics
+
 ### Enhanced Issue Reporting
 
 The screen saver includes an advanced issue reporting system that allows users to document problems in detail:
@@ -394,6 +425,7 @@ Debug overlays are **hidden by default** and can be toggled on/off as needed dur
 - **Photo Classification Issues**: Press **v** to toggle debug overlays and verify photo categorization
 - **Performance Issues**: Large images may take longer to load; consider resizing them beforehand
 - **Exit Issues**: Use Ctrl+C in the terminal if the application becomes unresponsive
+- **Log File Issues**: Check the `logs/` folder for detailed error information and session history
 
 ## Example Config File
 

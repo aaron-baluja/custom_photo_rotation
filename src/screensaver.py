@@ -785,6 +785,7 @@ class ScreenSaver:
         # Photo rotation timer is no longer used in the new system
         # but keep the variable for potential future use
         
+        print("🔄 Shutting down screensaver...")
         self.root.quit()
     
     def run(self):
@@ -792,4 +793,8 @@ class ScreenSaver:
         try:
             self.root.mainloop()
         except KeyboardInterrupt:
+            print("⌨️  Keyboard interrupt received")
+            self.exit_screensaver()
+        except Exception as e:
+            print(f"❌ Unexpected error in screensaver: {e}")
             self.exit_screensaver()
