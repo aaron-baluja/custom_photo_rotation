@@ -13,7 +13,7 @@ class LayoutType(Enum):
     SINGLE_PANE = "single_pane"
     DUAL_PANE = "dual_pane"
     TRIPLE_PANE = "triple_pane"
-    QUAD_PANE = "quad_pane"
+    
     # Future layouts can be added here
 
 

@@ -4,8 +4,8 @@ A Python-based screen saver application that displays images from a configured f
 
 ## Features
 
-- **🎯 Multiple Layout Modes**: Single pane, dual-pane, triple-pane, and quad-pane layouts
-- **🔄 Automatic Layout Rotation**: Seamlessly rotates through different layouts every 15 seconds
+- **🎯 Multiple Layout Modes**: Single pane, dual-pane, and triple-pane layouts
+- **🔄 Automatic Layout Rotation**: Seamlessly rotates through different layouts at the specified interval(default 15 seconds)
 - **🧠 Smart Layout Selection**: Automatically chooses appropriate layouts based on screen resolution
 - **📱 Intelligent Photo Placement**: Photos are automatically placed in appropriate panes based on their aspect ratio classification
 - **⚙️ Flexible Configuration**: Easy switching between auto-rotation and specific layout modes
@@ -13,7 +13,6 @@ A Python-based screen saver application that displays images from a configured f
 - **📝 Comprehensive Logging**: Automatic log file creation with timestamped filenames
 - **Fullscreen Display**: Runs in fullscreen mode for true screen saver experience
 - **Smart Aspect Ratio Handling**: Automatically resizes images to fit screen while maintaining their original aspect ratio
-- **15-Second Photo Intervals**: Each photo is displayed for exactly 15 seconds within each layout
 - **Photo Classification**: Automatically categorizes photos into 6 aspect ratio categories
 - **Metadata Extraction**: Extracts width, height, and date taken from photos
 - **Multiple Formats**: Supports JPG, JPEG, and PNG formats
@@ -45,14 +44,7 @@ A Python-based screen saver application that displays images from a configured f
 - **Best For**: Ultra-wide displays, showcasing three tall portrait photos side-by-side
 - **Display Duration**: 15 seconds before rotating to next layout
 
-### 🎯 Quad Pane Layout (2x2 Grid)
-- **Requirements**: Screen resolution ≥ 1920x1080
-- **Top Left**: Square photos
-- **Top Right**: 16:9 landscape photos
-- **Bottom Left**: 4:3 vertical photos
-- **Bottom Right**: 16:9 vertical photos
-- **Best For**: High-resolution displays, showcasing four different photo types simultaneously
-- **Display Duration**: 15 seconds before rotating to next layout
+
 
 ## 🚀 Layout Rotation System
 
@@ -120,7 +112,7 @@ FULLSCREEN=true
 
 # Layout settings
 LAYOUT_TYPE=auto
-# Available layouts: auto, single_pane, dual_pane, triple_pane, quad_pane
+# Available layouts: auto, single_pane, dual_pane, triple_pane
 # auto = automatically rotate through all available layouts
 LAYOUT_ROTATION_ENABLED=true
 PHOTO_LAYOUT_CHANGE_INTERVAL=15000
@@ -219,8 +211,8 @@ When running with auto layout rotation, you'll see detailed information:
 ```
 Screen dimensions: 2560x1440
 Configured layout type: auto
-Layout rotation enabled with 4 layouts available
-Available layouts: Single Pane, Dual Pane, Triple Pane, Quad Pane
+Layout rotation enabled with 3 layouts available
+Available layouts: Single Pane, Dual Pane, Triple Pane
 Auto mode: Starting with layout: Single Pane
 
 Layout Pane Summary:

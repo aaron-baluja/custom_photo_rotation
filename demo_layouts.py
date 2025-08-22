@@ -190,7 +190,7 @@ def demo_config_options():
     print("  - single_pane: Classic full-screen layout")
     print("  - dual_pane: Two-pane side-by-side layout")
     print("  - triple_pane: Three-pane horizontal layout")
-    print("  - quad_pane: 2x2 grid layout")
+    print("")
     
     print("\n⚙️  Configuration Tips:")
     print("  - Set LAYOUT_TYPE=auto for dynamic layout rotation")
@@ -219,7 +219,7 @@ def main():
         
         print("\n✅ Demo completed successfully!")
         print("\n🚀 New Features:")
-        print("  - Multiple layout modes (Single, Dual, Triple, Quad Pane)")
+        print("  - Multiple layout modes (Single, Dual, Triple Pane)")
         print("  - Automatic layout rotation")
         print("  - Smart photo placement for each layout")
         print("  - Configurable rotation intervals")
