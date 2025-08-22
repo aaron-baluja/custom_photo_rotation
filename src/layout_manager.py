@@ -63,7 +63,7 @@ class LayoutManager:
                     x=0, y=0,
                     width=self.screen_width,
                     height=self.screen_height,
-                    photo_categories=["ultra_wide", "16:9_landscape", "16:9_vertical", 
+                    photo_categories=["ultra_wide", "16:9_landscape", 
                                    "4:3_landscape", "4:3_vertical", "square"],
                     name="main"
                 )

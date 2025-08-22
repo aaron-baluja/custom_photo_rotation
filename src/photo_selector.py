@@ -81,6 +81,13 @@ class PhotoSelector:
         elif not hasattr(self, 'current_layout_used_photos'):
             self.current_layout_used_photos = set()
         
+        # Ensure current_layout_used_photos is always initialized
+        if not hasattr(self, 'current_layout_used_photos'):
+            self.current_layout_used_photos = set()
+        
+        # Debug: Log current layout tracking state
+        print(f"  🔍 Layout tracking: '{self.current_layout_name}' with {len(self.current_layout_used_photos)} photos used")
+        
         return pane_photos
     
     def get_next_photo_for_pane(self, pane_name: str) -> Optional[PhotoMetadata]:
@@ -761,13 +768,19 @@ class PhotoSelector:
                     self.mark_photo_as_used(selected_photo)
                     
                     time_indicator = "🌟" if selected_photo.filepath in self.time_weighted_photos else "📷"
-                    print(f"    ✅ {time_indicator} Selected: {os.path.basename(selected_photo.filepath)} (category: {selected_photo.aspect_ratio_category})")
+                    print(f"    ✅ {time_indicator} Selected: {os.path.basename(candidate_photo.filepath)} (category: {selected_photo.aspect_ratio_category})")
                     break
                 else:
                     # Debug info for duplicate detection
                     print(f"    🔄 Skipping duplicate: {os.path.basename(candidate_photo.filepath)} already used in this layout")
+                    print(f"      🔍 Current layout used photos: {[os.path.basename(f) for f in list(used_in_layout)[:3]]}...")
                 
                 attempts += 1
+                
+                # Safety check: if we've tried too many times, break to avoid infinite loop
+                if attempts >= max_attempts:
+                    print(f"    ⚠️  Reached maximum attempts ({max_attempts}) for {pane.name} pane")
+                    break
             
             if not selected_photo:
                 print(f"    ⚠️  Could not find unique photo for {pane.name} pane after {attempts} attempts")
@@ -784,9 +797,38 @@ class PhotoSelector:
                                 break
                         if selected_photo:
                             break
+                
+                # If still no photo selected, this is a critical error
+                if not selected_photo:
+                    print(f"    🚨 CRITICAL: No unique photo found for {pane.name} pane even in fallback mode")
+                    print(f"      🔍 Layout used photos: {[os.path.basename(f) for f in list(used_in_layout)[:5]]}...")
+                    print(f"      🔍 Available categories: {pane.photo_categories}")
+                    for cat in pane.photo_categories:
+                        if cat in photos_by_category:
+                            cat_photos = photos_by_category[cat]
+                            print(f"      📊 {cat}: {len(cat_photos)} total, {len([p for p in cat_photos if p.filepath not in used_in_layout])} available")
         
         # Update the layout-specific tracking
         self.current_layout_used_photos = used_in_layout
+        
+        # FINAL SAFETY CHECK: Ensure no duplicate photos in the layout
+        photo_filepaths = [photo.filepath for photo in pane_photos.values()]
+        if len(photo_filepaths) != len(set(photo_filepaths)):
+            print(f"    🚨 CRITICAL: Duplicate photos detected in layout!")
+            print(f"      🔍 Photo filepaths: {[os.path.basename(f) for f in photo_filepaths]}")
+            print(f"      🔍 Unique filepaths: {[os.path.basename(f) for f in set(photo_filepaths)]}")
+            
+            # Try to fix by finding unique alternatives for duplicates
+            fixed_pane_photos = self._fix_duplicate_photos_in_layout(pane_photos, used_in_layout)
+            if fixed_pane_photos:
+                print(f"      ✅ Fixed duplicate photos in layout")
+                # Update tracking with fixed photos
+                self.current_layout_used_photos = set()
+                for photo in fixed_pane_photos.values():
+                    self.current_layout_used_photos.add(photo.filepath)
+                pane_photos = fixed_pane_photos
+            else:
+                print(f"      ⚠️  Could not fix duplicate photos, using original selection")
         
         print(f"🎯 Final random photo selection: {len(pane_photos)} panes filled")
         for pane_name, photo in pane_photos.items():
@@ -833,6 +875,55 @@ class PhotoSelector:
                         return better_alternative
         
         return pane_photos
+    
+    def _fix_duplicate_photos_in_layout(self, pane_photos: Dict[str, PhotoMetadata], used_in_layout: set) -> Optional[Dict[str, PhotoMetadata]]:
+        """Fix duplicate photos in a layout by finding unique alternatives"""
+        layout = self.layout_manager.get_current_layout()
+        if not layout:
+            return None
+        
+        # Find which photos are duplicated
+        photo_filepaths = [photo.filepath for photo in pane_photos.values()]
+        duplicates = [fp for fp in photo_filepaths if photo_filepaths.count(fp) > 1]
+        unique_duplicates = list(set(duplicates))
+        
+        print(f"      🔧 Attempting to fix {len(unique_duplicates)} duplicate photo(s)")
+        
+        fixed_pane_photos = pane_photos.copy()
+        photos_by_category = getattr(self, 'all_photos_by_category', {})
+        
+        for duplicate_filepath in unique_duplicates:
+            # Find which panes have this duplicate
+            duplicate_panes = [pane_name for pane_name, photo in pane_photos.items() 
+                             if photo.filepath == duplicate_filepath]
+            
+            # Keep the first occurrence, fix the rest
+            for pane_name in duplicate_panes[1:]:
+                print(f"        🔧 Fixing duplicate in {pane_name} pane")
+                
+                # Find an alternative photo for this pane
+                pane = next((p for p in layout.panes if p.name == pane_name), None)
+                if not pane:
+                    continue
+                
+                alternative_photo = None
+                for category in pane.photo_categories:
+                    if category in photos_by_category:
+                        for photo in photos_by_category[category]:
+                            if photo.filepath not in used_in_layout:
+                                alternative_photo = photo
+                                break
+                        if alternative_photo:
+                            break
+                
+                if alternative_photo:
+                    fixed_pane_photos[pane_name] = alternative_photo
+                    used_in_layout.add(alternative_photo.filepath)
+                    print(f"          ✅ Replaced with {os.path.basename(alternative_photo.filepath)}")
+                else:
+                    print(f"          ⚠️  No alternative found for {pane_name} pane")
+        
+        return fixed_pane_photos
     
     def _find_alternative_with_fewer_ultra_wide(self, original_photos: Dict[str, PhotoMetadata], current_ultra_wide_count: int) -> Optional[Dict[str, PhotoMetadata]]:
         """Try to find an alternative photo combination with fewer ultra-wide photos"""
