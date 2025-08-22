@@ -365,16 +365,24 @@ class ScreenSaver:
                 # Resize image maintaining aspect ratio
                 image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
             else:
-                # All other photos: use cropping to maintain aspect ratio while filling the pane
+                # All other photos: use orientation-based cropping strategy
                 crop_x, crop_y, crop_width, crop_height = calculate_crop_dimensions(
                     pane.width, pane.height,
                     photo_metadata.width, photo_metadata.height
                 )
                 
-                # Resize image to cover the pane (may be larger than pane)
-                scale_x = pane.width / photo_metadata.width
-                scale_y = pane.height / photo_metadata.height
-                scale = max(scale_x, scale_y)
+                # Calculate scaling based on photo orientation
+                photo_aspect_ratio = photo_metadata.width / photo_metadata.height
+                
+                if photo_aspect_ratio > 1.1:
+                    # Landscape: Scale to fit width
+                    scale = pane.width / photo_metadata.width
+                elif photo_aspect_ratio < 0.9:
+                    # Vertical: Scale to fit height
+                    scale = pane.height / photo_metadata.height
+                else:
+                    # Square: Scale to fit width
+                    scale = pane.width / photo_metadata.width
                 
                 scaled_width = int(photo_metadata.width * scale)
                 scaled_height = int(photo_metadata.height * scale)

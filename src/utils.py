@@ -76,6 +76,11 @@ def calculate_crop_dimensions(screen_width: int, screen_height: int,
                              photo_width: int, photo_height: int) -> Tuple[int, int, int, int]:
     """Calculate dimensions for cropping a photo to fit a pane while maintaining aspect ratio
     
+    Cropping strategy based on photo orientation:
+    - Landscape photos: Scale to fit width, crop equally from top and bottom
+    - Vertical photos: Scale to fit height, crop equally from left and right  
+    - Square photos: Scale to fit width, crop equally from top and bottom
+    
     Args:
         screen_width: Width of the target display area
         screen_height: Height of the target display area
@@ -83,26 +88,40 @@ def calculate_crop_dimensions(screen_width: int, screen_height: int,
         photo_height: Original height of the photo
     
     Returns:
-        Tuple of (crop_x, crop_y, crop_width, crop_height) for cropping the original photo
+        Tuple of (crop_x, crop_y, crop_width, crop_height) for cropping the scaled photo
     """
     if photo_height == 0:
         return 0, 0, photo_width, photo_height
     
-    # Calculate the scaling factor to fit the photo within the pane
-    # while maintaining aspect ratio
-    scale_x = screen_width / photo_width
-    scale_y = screen_height / photo_height
+    # Determine photo orientation
+    photo_aspect_ratio = photo_width / photo_height
     
-    # Use the larger scale to ensure the photo covers the entire pane
-    scale = max(scale_x, scale_y)
-    
-    # Calculate the scaled dimensions
-    scaled_width = int(photo_width * scale)
-    scaled_height = int(photo_height * scale)
-    
-    # Calculate the crop area to center the photo in the pane
-    crop_x = (scaled_width - screen_width) // 2
-    crop_y = (scaled_height - screen_height) // 2
+    if photo_aspect_ratio > 1.1:
+        # Landscape photo: Scale to fit width, crop from top/bottom
+        scale = screen_width / photo_width
+        scaled_width = screen_width
+        scaled_height = int(photo_height * scale)
+        
+        crop_x = 0  # No horizontal cropping
+        crop_y = (scaled_height - screen_height) // 2  # Center vertically, crop top/bottom equally
+        
+    elif photo_aspect_ratio < 0.9:
+        # Vertical photo: Scale to fit height, crop from left/right
+        scale = screen_height / photo_height
+        scaled_width = int(photo_width * scale)
+        scaled_height = screen_height
+        
+        crop_x = (scaled_width - screen_width) // 2  # Center horizontally, crop left/right equally
+        crop_y = 0  # No vertical cropping
+        
+    else:
+        # Square photo: Scale to fit width, crop from top/bottom
+        scale = screen_width / photo_width
+        scaled_width = screen_width
+        scaled_height = int(photo_height * scale)
+        
+        crop_x = 0  # No horizontal cropping
+        crop_y = (scaled_height - screen_height) // 2  # Center vertically, crop top/bottom equally
     
     # Ensure crop coordinates are within bounds
     crop_x = max(0, crop_x)
