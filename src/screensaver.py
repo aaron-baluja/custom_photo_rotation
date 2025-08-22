@@ -27,8 +27,7 @@ class ScreenSaver:
         self.photo_classifier = PhotoClassifier()
         
         # Configure fullscreen
-        if self.config_manager.is_fullscreen():
-            self.root.attributes('-fullscreen', True)
+        self.root.attributes('-fullscreen', True)
         self.root.configure(bg='black')
         
         # Bind exit events
@@ -119,14 +118,6 @@ class ScreenSaver:
         # Get configured layout type
         layout_type = self.config_manager.get_layout_type()
         print(f"Configured layout type: {layout_type}")
-        
-        # Configure layout rotation
-        rotation_enabled = self.config_manager.is_layout_rotation_enabled()
-        self.layout_manager.set_layout_rotation_enabled(rotation_enabled)
-        
-        if rotation_enabled:
-            print(f"Layout rotation enabled with {self.layout_manager.get_layout_count()} layouts available")
-            print(f"Available layouts: {', '.join(self.layout_manager.get_available_layout_names())}")
         
         # Set initial layout
         if layout_type == "auto":
@@ -239,17 +230,13 @@ class ScreenSaver:
         if has_photos:
             self.show_next_photos()
             
-            # Start layout rotation if enabled
-            if self.layout_manager.is_layout_rotation_enabled():
-                self.start_layout_rotation()
+            # Start layout rotation
+            self.start_layout_rotation()
         else:
             self.show_error("No photos available for the current layout")
     
     def start_layout_rotation(self):
         """Start automatic layout rotation"""
-        if not self.layout_manager.is_layout_rotation_enabled():
-            return
-        
         rotation_interval = self.config_manager.get_change_interval()
         print(f"Layout and photo changes will occur every {rotation_interval/1000:.1f} seconds")
         
@@ -261,7 +248,7 @@ class ScreenSaver:
     
     def rotate_layout_and_photos(self):
         """Rotate to the next layout AND show new photos simultaneously"""
-        if not self.running or not self.layout_manager.is_layout_rotation_enabled():
+        if not self.running:
             return
         
         # Cancel any existing timer to prevent overlapping rotations
@@ -687,10 +674,9 @@ class ScreenSaver:
         self.issue_start_time = None
         
         # Resume the photo rotation timer
-        if self.layout_manager.is_layout_rotation_enabled():
-            rotation_interval = self.config_manager.get_change_interval()
-            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
-            print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
+        rotation_interval = self.config_manager.get_change_interval()
+        self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+        print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
     
     def cancel_issue_reporting(self):
         """Cancel issue reporting and resume normal operation"""
@@ -713,10 +699,9 @@ class ScreenSaver:
         self.issue_start_time = None
         
         # Resume the photo rotation timer
-        if self.layout_manager.is_layout_rotation_enabled():
-            rotation_interval = self.config_manager.get_change_interval()
-            self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
-            print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
+        rotation_interval = self.config_manager.get_change_interval()
+        self.layout_rotation_timer = self.root.after(rotation_interval, self.rotate_layout_and_photos)
+        print(f"▶️  Photo rotation timer resumed - next change in {rotation_interval/1000:.1f} seconds")
     
     def add_debug_marker(self):
         """Add a timestamp marker to the console log for issue reporting (legacy method)"""
@@ -742,14 +727,10 @@ class ScreenSaver:
             return
         
         # In the new system, this triggers a combined layout+photo rotation
-        if self.layout_manager.is_layout_rotation_enabled():
-            print("🔄 Manual trigger of combined rotation")
-            
-            # Trigger combined rotation immediately
-            self.rotate_layout_and_photos()
-        else:
-            # If no layout rotation, just show next photos
-            self.show_next_photos()
+        print("🔄 Manual trigger of combined rotation")
+        
+        # Trigger combined rotation immediately
+        self.rotate_layout_and_photos()
     
     def on_key_press(self, event):
         """Handle key press events"""

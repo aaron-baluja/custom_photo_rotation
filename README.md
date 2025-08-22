@@ -1,6 +1,6 @@
 # Custom Photo Rotation Screen Saver
 
-A Python-based screen saver that displays images from a configured folder with automatic layout rotation. The program recursively searches for images in subdirectories, classifies them by aspect ratio, and presents them in different layout modes that automatically rotate every 15 seconds.
+A Python-based screen saver that displays images from a configured folder with automatic layout rotation. The program runs in fullscreen mode and recursively searches for images in subdirectories, classifies them by aspect ratio, and presents them in different layout modes that automatically rotate every 15 seconds.
 
 ## Supported Features
 
@@ -19,6 +19,7 @@ Automatically categorizes photos into 6 aspect ratio categories:
 - **Square (1:1)**: Square photos
 
 ### Smart Features
+- **Fullscreen Mode**: Runs in true fullscreen for authentic screen saver experience
 - **Automatic Layout Rotation**: Cycles through available layouts every 15 seconds
 - **Intelligent Photo Placement**: Photos automatically assigned to appropriate panes
 - **Aspect Ratio Preservation**: Photos maintain their natural proportions
@@ -35,20 +36,18 @@ Create a `config.txt` file in the same directory as `main.py`:
 IMAGE_FOLDER=C:\Users\YourName\Pictures\Screensaver
 
 # Display settings
-FULLSCREEN=true
 CHANGE_INTERVAL=15000
 
 # Layout settings
 LAYOUT_TYPE=auto
-LAYOUT_ROTATION_ENABLED=true
 ```
 
 ### Configuration Parameters
 - **`IMAGE_FOLDER`**: Path to folder containing your images
-- **`FULLSCREEN`**: Set to `true` for true screen saver experience
+
 - **`CHANGE_INTERVAL`**: How often layouts and photos change (milliseconds, default: 15000)
 - **`LAYOUT_TYPE`**: `auto` for rotation, or specific layout name (`single_pane`, `dual_pane`, `triple_pane`)
-- **`LAYOUT_ROTATION_ENABLED`**: `true` to enable automatic layout rotation
+
 
 ### Supported Image Formats
 - JPG/JPEG

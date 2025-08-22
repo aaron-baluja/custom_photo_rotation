@@ -48,7 +48,7 @@ class LayoutManager:
         self.current_layout = None
         self.current_layout_index = 0
         self.available_layouts = self._create_available_layouts()
-        self.layout_rotation_enabled = True
+
     
     def _create_available_layouts(self) -> List[Layout]:
         """Create all available layouts based on screen dimensions"""
@@ -294,13 +294,7 @@ class LayoutManager:
             return self.current_layout.display_duration
         return 30000  # Default 30 seconds
     
-    def is_layout_rotation_enabled(self) -> bool:
-        """Check if layout rotation is enabled"""
-        return self.layout_rotation_enabled and len(self.available_layouts) > 1
-    
-    def set_layout_rotation_enabled(self, enabled: bool):
-        """Enable or disable layout rotation"""
-        self.layout_rotation_enabled = enabled
+
     
     def get_layout_count(self) -> int:
         """Get the total number of available layouts"""

@@ -180,9 +180,9 @@ def demo_config_options():
     print("📋 Current Configuration:")
     print(f"  Image Folder: {config_manager.get_image_folder()}")
     print(f"  Display Interval: {config_manager.get_display_interval()}ms")
-    print(f"  Fullscreen: {config_manager.is_fullscreen()}")
+    
     print(f"  Layout Type: {config_manager.get_layout_type()}")
-    print(f"  Layout Rotation Enabled: {config_manager.is_layout_rotation_enabled()}")
+    
     print(f"  Photo Layout Change Interval: {config_manager.get_photo_layout_change_interval()}ms")
     
     print("\n🔧 Available Layout Types:")
@@ -195,7 +195,7 @@ def demo_config_options():
     print("\n⚙️  Configuration Tips:")
     print("  - Set LAYOUT_TYPE=auto for dynamic layout rotation")
     print("  - Adjust PHOTO_LAYOUT_CHANGE_INTERVAL for faster/slower combined changes")
-    print("  - Set LAYOUT_ROTATION_ENABLED=false to disable rotation")
+    
     print("  - Layouts and photos change together every 15 seconds")
     
     print("\n" + "=" * 60)

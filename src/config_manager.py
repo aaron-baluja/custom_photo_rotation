@@ -55,13 +55,13 @@ class ConfigManager:
                 "# Display settings",
                 "CHANGE_INTERVAL=15000",
                 "# How often the layout and photos change in milliseconds (15 seconds default)",
-                "FULLSCREEN=true",
+        
                 "",
                 "# Layout settings",
                 "LAYOUT_TYPE=auto",
                 "# Available layouts: auto, single_pane, dual_pane, triple_vertical",
                 "# auto = automatically rotate through all available layouts",
-                "LAYOUT_ROTATION_ENABLED=true",
+        
                 "",
                 "# Debug settings",
                 "DEBUG_MODE=false",
@@ -74,9 +74,9 @@ class ConfigManager:
             # Set default values
             self.config['IMAGE_FOLDER'] = default_folder
             self.config['CHANGE_INTERVAL'] = '15000'
-            self.config['FULLSCREEN'] = 'true'
+    
             self.config['LAYOUT_TYPE'] = 'auto'
-            self.config['LAYOUT_ROTATION_ENABLED'] = 'true'
+    
 
             
             print(f"Created default config file: {self.config_file}")
@@ -104,13 +104,13 @@ class ConfigManager:
                 f.write(f"# Display settings\n")
                 f.write(f"CHANGE_INTERVAL={self.config.get('CHANGE_INTERVAL', '15000')}\n")
                 f.write("# How often the layout and photos change in milliseconds (15 seconds default)\n")
-                f.write(f"FULLSCREEN={self.config.get('FULLSCREEN', 'true')}\n")
+        
                 f.write("\n")
                 f.write(f"# Layout settings\n")
                 f.write(f"LAYOUT_TYPE={self.config.get('LAYOUT_TYPE', 'auto')}\n")
                 f.write("# Available layouts: auto, single_pane, dual_pane, triple_vertical\n")
                 f.write("# auto = automatically rotate through all available layouts\n")
-                f.write(f"LAYOUT_ROTATION_ENABLED={self.config.get('LAYOUT_ROTATION_ENABLED', 'true')}\n")
+        
                 f.write("\n")
                 f.write(f"# Debug settings\n")
         
@@ -148,9 +148,7 @@ class ConfigManager:
         except ValueError:
             return 15000
     
-    def is_fullscreen(self):
-        """Check if fullscreen mode is enabled"""
-        return self.config.get('FULLSCREEN', 'true').lower() == 'true'
+
     
     def get_layout_type(self):
         """Get the configured layout type"""
@@ -160,13 +158,7 @@ class ConfigManager:
         """Set the layout type"""
         self.set('LAYOUT_TYPE', layout_type)
     
-    def is_layout_rotation_enabled(self):
-        """Check if layout rotation is enabled"""
-        return self.config.get('LAYOUT_ROTATION_ENABLED', 'true').lower() == 'true'
-    
-    def set_layout_rotation_enabled(self, enabled):
-        """Enable or disable layout rotation"""
-        self.set('LAYOUT_ROTATION_ENABLED', str(enabled).lower())
+
     
     def set_change_interval(self, interval):
         """Set how often the layout and photos change in milliseconds"""
