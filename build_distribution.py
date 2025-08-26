@@ -290,7 +290,41 @@ def verify_build():
     print("\n✅ Build verification passed!")
     return True
 
-def print_summary():
+
+def create_distribution_zip():
+    """Create a zip file of the distribution package"""
+    print("📦 Creating distribution zip file...")
+    
+    # Get current timestamp for zip filename
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    zip_filename = f"PhotoRotationScreensaver_{timestamp}.zip"
+    
+    try:
+        import zipfile
+        
+        with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Add all files from dist folder
+            for root, dirs, files in os.walk("dist"):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Calculate relative path for zip
+                    arcname = os.path.relpath(file_path, "dist")
+                    zipf.write(file_path, arcname)
+                    print(f"   📁 Added: {arcname}")
+        
+        # Get zip file size
+        zip_size = os.path.getsize(zip_filename)
+        zip_size_mb = zip_size / (1024 * 1024)
+        print(f"\n✅ Created: {zip_filename} ({zip_size_mb:.1f} MB)")
+        
+        return zip_filename
+        
+    except Exception as e:
+        print(f"   ❌ Failed to create zip file: {e}")
+        return None
+
+
+def print_summary(zip_filename=None):
     """Print build summary"""
     print("\n" + "=" * 60)
     print("🎉 BUILD COMPLETED SUCCESSFULLY!")
@@ -310,13 +344,22 @@ def print_summary():
                 size_str = f"{file_size / 1024:.1f} KB"
             print(f"   📄 {file_name} ({size_str})")
     
+    if zip_filename and os.path.exists(zip_filename):
+        zip_size = os.path.getsize(zip_filename)
+        zip_size_mb = zip_size / (1024 * 1024)
+        print(f"\n📦 Distribution zip created: {zip_filename} ({zip_size_mb:.1f} MB)")
+    
     print()
     print("🚀 READY FOR DISTRIBUTION!")
     print()
     print("💡 To distribute to users:")
-    print("   1. Zip the entire 'dist' folder")
-    print("   2. Send the zip file to users")
-    print("   3. Users extract and run PhotoRotationScreensaver.exe")
+    if zip_filename and os.path.exists(zip_filename):
+        print(f"   1. Send the zip file: {zip_filename}")
+        print("   2. Users extract and run PhotoRotationScreensaver.exe")
+    else:
+        print("   1. Zip the entire 'dist' folder")
+        print("   2. Send the zip file to users")
+        print("   3. Users extract and run PhotoRotationScreensaver.exe")
     print()
     print("🔧 To rebuild in the future:")
     print("   python build_distribution.py")
@@ -345,7 +388,10 @@ def main():
             print("❌ Build verification failed!")
             sys.exit(1)
         
-        print_summary()
+        # Create distribution zip
+        zip_filename = create_distribution_zip()
+        
+        print_summary(zip_filename)
         
     except Exception as e:
         print(f"\n💥 Build failed with unexpected error: {e}")
