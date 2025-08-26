@@ -57,38 +57,60 @@ class Logger:
                     self.file_stream = file_stream
                 
                 def write(self, text):
-                    # Write to console
-                    self.console_stream.write(text)
-                    self.console_stream.flush()
+                    # Safely write to console stream (handle None case)
+                    if self.console_stream and hasattr(self.console_stream, 'write'):
+                        try:
+                            self.console_stream.write(text)
+                            self.console_stream.flush()
+                        except (AttributeError, OSError):
+                            pass  # Console stream unavailable
                     
-                    # Write to file
+                    # Always write to file stream
                     if self.file_stream and not self.file_stream.closed:
                         try:
                             self.file_stream.write(text)
                             self.file_stream.flush()
                         except Exception:
-                            pass  # Silently fail if file write fails
+                            pass
                 
                 def flush(self):
-                    self.console_stream.flush()
+                    # Safely flush console stream
+                    if self.console_stream and hasattr(self.console_stream, 'flush'):
+                        try:
+                            self.console_stream.flush()
+                        except (AttributeError, OSError):
+                            pass
+                    
+                    # Always flush file stream
                     if self.file_stream and not self.file_stream.closed:
                         try:
                             self.file_stream.flush()
                         except Exception:
                             pass
             
-            # Replace stdout and stderr
-            sys.stdout = DualOutput(self.original_stdout, self.log_file)
-            sys.stderr = DualOutput(self.original_stderr, self.log_file)
+            # Check if stdout/stderr are available before setting up dual output
+            if self.original_stdout and hasattr(self.original_stdout, 'write'):
+                sys.stdout = DualOutput(self.original_stdout, self.log_file)
+            else:
+                # Fallback: just write to file
+                sys.stdout = DualOutput(None, self.log_file)
+            
+            if self.original_stderr and hasattr(self.original_stderr, 'write'):
+                sys.stderr = DualOutput(self.original_stderr, self.log_file)
+            else:
+                # Fallback: just write to file
+                sys.stderr = DualOutput(None, self.log_file)
     
     def close(self):
         """Close the log file and restore original stdout/stderr"""
         if self.log_file and not self.log_file.closed:
             self.log_file.close()
         
-        # Restore original stdout and stderr
-        sys.stdout = self.original_stdout
-        sys.stderr = self.original_stderr
+        # Restore original streams only if they're valid
+        if self.original_stdout and hasattr(self.original_stdout, 'write'):
+            sys.stdout = self.original_stdout
+        if self.original_stderr and hasattr(self.original_stderr, 'write'):
+            sys.stderr = self.original_stderr
         
         if self.log_file_path:
             print(f"📝 Log file saved: {self.log_file_path}")

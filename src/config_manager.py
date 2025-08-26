@@ -3,6 +3,18 @@ Configuration management module for the screen saver.
 """
 
 import os
+import sys
+
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class ConfigManager:
@@ -16,31 +28,50 @@ class ConfigManager:
     def load_config(self):
         """Load configuration from file"""
         try:
+            # Try to load from current directory first
             if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line.startswith('#') or not line:
-                            continue
-                        
-                        if '=' in line:
-                            key, value = line.split('=', 1)
-                            key = key.strip()
-                            value = value.strip()
-                            
-                            # Remove quotes if present
-                            if (value.startswith('"') and value.endswith('"')) or \
-                               (value.startswith("'") and value.endswith("'")):
-                                value = value[1:-1]
-                            
-                            self.config[key] = value
+                self._load_from_file(self.config_file)
             else:
-                # Create default config if it doesn't exist
-                self.create_default_config()
+                # Try to load from PyInstaller bundled location
+                bundled_config = get_resource_path(self.config_file)
+                if os.path.exists(bundled_config):
+                    print(f"Loading config from bundled location: {bundled_config}")
+                    self._load_from_file(bundled_config)
+                else:
+                    print(f"Config file not found in current directory or bundled location")
+                    print(f"Current directory: {os.getcwd()}")
+                    print(f"Bundled location: {bundled_config}")
+                    # Create default config if it doesn't exist
+                    self.create_default_config()
                 
         except Exception as e:
             print(f"Error loading config: {e}")
             self.create_default_config()
+    
+    def _load_from_file(self, file_path):
+        """Load configuration from a specific file path"""
+        try:
+            with open(file_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('#') or not line:
+                        continue
+                    
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        key = key.strip()
+                        value = value.strip()
+                        
+                        # Remove quotes if present
+                        if (value.startswith('"') and value.endswith('"')) or \
+                           (value.startswith("'") and value.endswith("'")):
+                            value = value[1:-1]
+                        
+                        self.config[key] = value
+            print(f"Successfully loaded config from: {file_path}")
+        except Exception as e:
+            print(f"Error reading config file {file_path}: {e}")
+            raise
     
     def create_default_config(self):
         """Create a default configuration file"""
