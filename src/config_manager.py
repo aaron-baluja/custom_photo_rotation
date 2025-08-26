@@ -28,21 +28,24 @@ class ConfigManager:
     def load_config(self):
         """Load configuration from file"""
         try:
-            # Try to load from current directory first
+            # Always try to load from current directory first (user's config)
             if os.path.exists(self.config_file):
+                print(f"Loading user config from: {os.path.abspath(self.config_file)}")
                 self._load_from_file(self.config_file)
+                return
+            
+            # If no user config exists, try to load from PyInstaller bundled location
+            bundled_config = get_resource_path(self.config_file)
+            if os.path.exists(bundled_config):
+                print(f"Loading bundled config template from: {bundled_config}")
+                self._load_from_file(bundled_config)
+                print("Note: This is a template config. Copy and modify it to customize settings.")
             else:
-                # Try to load from PyInstaller bundled location
-                bundled_config = get_resource_path(self.config_file)
-                if os.path.exists(bundled_config):
-                    print(f"Loading config from bundled location: {bundled_config}")
-                    self._load_from_file(bundled_config)
-                else:
-                    print(f"Config file not found in current directory or bundled location")
-                    print(f"Current directory: {os.getcwd()}")
-                    print(f"Bundled location: {bundled_config}")
-                    # Create default config if it doesn't exist
-                    self.create_default_config()
+                print(f"Config file not found in current directory or bundled location")
+                print(f"Current directory: {os.getcwd()}")
+                print(f"Bundled location: {bundled_config}")
+                # Create default config if it doesn't exist
+                self.create_default_config()
                 
         except Exception as e:
             print(f"Error loading config: {e}")
