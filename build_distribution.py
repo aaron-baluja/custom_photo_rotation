@@ -295,9 +295,15 @@ def create_distribution_zip():
     """Create a zip file of the distribution package"""
     print("📦 Creating distribution zip file...")
     
+    # Ensure distributions folder exists
+    distributions_dir = "distributions"
+    if not os.path.exists(distributions_dir):
+        os.makedirs(distributions_dir)
+        print(f"   📁 Created distributions folder: {distributions_dir}")
+    
     # Get current timestamp for zip filename
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    zip_filename = f"PhotoRotationScreensaver_{timestamp}.zip"
+    zip_filename = os.path.join(distributions_dir, f"PhotoRotationScreensaver_{timestamp}.zip")
     
     try:
         import zipfile
@@ -315,7 +321,8 @@ def create_distribution_zip():
         # Get zip file size
         zip_size = os.path.getsize(zip_filename)
         zip_size_mb = zip_size / (1024 * 1024)
-        print(f"\n✅ Created: {zip_filename} ({zip_size_mb:.1f} MB)")
+        print(f"\n✅ Created: {os.path.basename(zip_filename)} ({zip_size_mb:.1f} MB)")
+        print(f"   📁 Location: {zip_filename}")
         
         return zip_filename
         
@@ -347,14 +354,15 @@ def print_summary(zip_filename=None):
     if zip_filename and os.path.exists(zip_filename):
         zip_size = os.path.getsize(zip_filename)
         zip_size_mb = zip_size / (1024 * 1024)
-        print(f"\n📦 Distribution zip created: {zip_filename} ({zip_size_mb:.1f} MB)")
+        print(f"\n📦 Distribution zip created: {os.path.basename(zip_filename)} ({zip_size_mb:.1f} MB)")
+        print(f"   📁 Location: {zip_filename}")
     
     print()
     print("🚀 READY FOR DISTRIBUTION!")
     print()
     print("💡 To distribute to users:")
     if zip_filename and os.path.exists(zip_filename):
-        print(f"   1. Send the zip file: {zip_filename}")
+        print(f"   1. Send the zip file: {os.path.basename(zip_filename)}")
         print("   2. Users extract and run PhotoRotationScreensaver.exe")
     else:
         print("   1. Zip the entire 'dist' folder")
