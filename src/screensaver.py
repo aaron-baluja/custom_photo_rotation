@@ -129,6 +129,52 @@ class ScreenSaver:
             
             return tkinter_width, tkinter_height
     
+    def _add_triple_vertical_layout_for_4k(self, screen_width, screen_height):
+        """Manually add Triple Vertical layout for 4K displays with DPI scaling"""
+        try:
+            from layout_manager import Layout, LayoutType, Pane
+            
+            # Calculate pane dimensions using Tkinter resolution
+            pane_width = screen_width // 3
+            
+            triple_vertical_layout = Layout(
+                name="Triple Vertical",
+                type=LayoutType.TRIPLE_PANE,
+                panes=[
+                    Pane(
+                        x=0, y=0,
+                        width=pane_width,
+                        height=screen_height,
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
+                        name="left"
+                    ),
+                    Pane(
+                        x=pane_width, y=0,
+                        width=pane_width,
+                        height=screen_height,
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
+                        name="center"
+                    ),
+                    Pane(
+                        x=pane_width * 2, y=0,
+                        width=pane_width,
+                        height=screen_height,
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
+                        name="right"
+                    )
+                ],
+                total_width=screen_width,
+                total_height=screen_height,
+                display_duration=30000  # 30 seconds
+            )
+            
+            # Add to available layouts
+            self.layout_manager.available_layouts.append(triple_vertical_layout)
+            print(f"✅ Added Triple Vertical layout with Tkinter dimensions: {pane_width}x{screen_height} per pane")
+            
+        except Exception as e:
+            print(f"❌ Failed to add Triple Vertical layout for 4K: {e}")
+    
     def load_and_classify_photos(self):
         """Load, classify, and organize photos by aspect ratio category"""
         image_folder = self.config_manager.get_image_folder()
@@ -180,13 +226,42 @@ class ScreenSaver:
     
     def initialize_layout_system(self):
         """Initialize the layout system based on configuration"""
-        # Get screen dimensions with high DPI support
-        screen_width, screen_height = self.get_actual_screen_resolution()
+        # Get screen dimensions - use Tkinter for layout calculations but detect 4K for layout availability
+        tkinter_width = self.root.winfo_screenwidth()
+        tkinter_height = self.root.winfo_screenheight()
+        actual_width, actual_height = self.get_actual_screen_resolution()
         
-        print(f"Screen dimensions: {screen_width}x{screen_height}")
+        # Use actual resolution to determine layout availability, but Tkinter resolution for calculations
+        screen_width = tkinter_width
+        screen_height = tkinter_height
         
-        # Create layout manager
+        print(f"🖥️  Screen resolution (Tkinter): {screen_width}x{screen_height}")
+        print(f"🖥️  Actual resolution (detected): {actual_width}x{actual_height}")
+        
+        # Override layout availability check if we detect 4K but Tkinter reports scaled resolution
+        layout_availability_width = actual_width
+        layout_availability_height = actual_height
+        
+        if actual_width >= 3840 and actual_height >= 2160 and tkinter_width < 1920:
+            print(f"🔍 4K display detected with DPI scaling - using actual resolution for layout availability")
+            layout_availability_width = actual_width
+            layout_availability_height = actual_height
+        else:
+            layout_availability_width = screen_width
+            layout_availability_height = screen_height
+        
+        # Create layout manager using Tkinter dimensions for consistent pane calculations
         self.layout_manager = LayoutManager(screen_width, screen_height)
+        print(f"🖥️  Layout manager created with: {screen_width}x{screen_height}")
+        
+        # Check if we need to enable additional layouts for 4K displays
+        if layout_availability_width >= 3840 and layout_availability_height >= 2160 and screen_width < 1920:
+            print(f"🔧 4K display detected with DPI scaling - enabling additional layouts")
+            # For 4K displays with DPI scaling, manually enable Triple Vertical if not available
+            available_layouts = self.layout_manager.get_available_layout_names()
+            if "Triple Vertical" not in available_layouts:
+                print(f"🎯 Manually enabling Triple Vertical layout for scaled 4K display")
+                self._add_triple_vertical_layout_for_4k(screen_width, screen_height)
         
         # Get configured layout type
         layout_type = self.config_manager.get_layout_type()
