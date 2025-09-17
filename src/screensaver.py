@@ -6,6 +6,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import os
 import time
+import random
 
 from photo_classifier import PhotoClassifier
 from photo_metadata import PhotoMetadata
@@ -55,6 +56,79 @@ class ScreenSaver:
         # Load config and start
         self.load_and_classify_photos()
     
+    def get_actual_screen_resolution(self):
+        """Get actual screen resolution, handling high DPI displays on Windows"""
+        try:
+            # Try to get actual screen resolution using Windows API
+            import ctypes
+            from ctypes import wintypes
+            
+            # Get the primary monitor handle
+            user32 = ctypes.windll.user32
+            
+            # Method 1: Try GetSystemMetrics for actual screen resolution
+            actual_width = user32.GetSystemMetrics(0)   # SM_CXSCREEN
+            actual_height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
+            
+            # Method 2: Get DPI-aware resolution using GetDeviceCaps
+            try:
+                hdc = user32.GetDC(0)
+                gdi32 = ctypes.windll.gdi32
+                
+                # Get actual pixel dimensions
+                pixel_width = gdi32.GetDeviceCaps(hdc, 8)   # HORZRES
+                pixel_height = gdi32.GetDeviceCaps(hdc, 10)  # VERTRES
+                
+                # Get logical dimensions  
+                logical_width = gdi32.GetDeviceCaps(hdc, 118)  # DESKTOPHORZRES
+                logical_height = gdi32.GetDeviceCaps(hdc, 117) # DESKTOPVERTRES
+                
+                user32.ReleaseDC(0, hdc)
+                
+                # Use the larger of the two methods (handles different DPI scenarios)
+                final_width = max(actual_width, pixel_width, logical_width)
+                final_height = max(actual_height, pixel_height, logical_height)
+                
+                print(f"🖥️  Screen resolution detection:")
+                print(f"   GetSystemMetrics: {actual_width}x{actual_height}")
+                print(f"   GetDeviceCaps (pixel): {pixel_width}x{pixel_height}")  
+                print(f"   GetDeviceCaps (logical): {logical_width}x{logical_height}")
+                print(f"   Final resolution: {final_width}x{final_height}")
+                
+                return final_width, final_height
+                
+            except Exception as e:
+                print(f"⚠️  GetDeviceCaps failed: {e}, using GetSystemMetrics")
+                return actual_width, actual_height
+                
+        except Exception as e:
+            # Fallback to Tkinter method
+            print(f"⚠️  Windows API failed: {e}, using Tkinter fallback")
+            tkinter_width = self.root.winfo_screenwidth()
+            tkinter_height = self.root.winfo_screenheight()
+            
+            print(f"🖥️  Tkinter screen resolution: {tkinter_width}x{tkinter_height}")
+            
+            # If Tkinter reports suspiciously low resolution, try to detect common high-DPI scenarios
+            if tkinter_width <= 1366 and tkinter_height <= 768:
+                print("⚠️  Detected potentially scaled resolution, checking for common 4K scenarios")
+                
+                # Common 4K scenarios when scaled
+                if tkinter_width == 1280 and tkinter_height == 720:
+                    print("🔍 1280x720 detected - likely 4K display with 300% scaling")
+                    return 3840, 2160  # Assume 4K
+                elif tkinter_width == 1366 and tkinter_height == 768:
+                    print("🔍 1366x768 detected - likely 4K display with ~280% scaling")
+                    return 3840, 2160  # Assume 4K
+                elif tkinter_width == 1536 and tkinter_height == 864:
+                    print("🔍 1536x864 detected - likely 4K display with 250% scaling")
+                    return 3840, 2160  # Assume 4K
+                elif tkinter_width == 1920 and tkinter_height == 1080:
+                    print("🔍 1920x1080 detected - could be native 1080p or scaled 4K")
+                    return 1920, 1080  # Keep as-is, could be native
+            
+            return tkinter_width, tkinter_height
+    
     def load_and_classify_photos(self):
         """Load, classify, and organize photos by aspect ratio category"""
         image_folder = self.config_manager.get_image_folder()
@@ -97,18 +171,17 @@ class ScreenSaver:
         # Initialize layout system
         self.initialize_layout_system()
         
-        # Start slideshow if photos found
+        # Start initial transition if photos found
         total_photos = sum(len(photos) for photos in self.photos_by_category.values())
         if total_photos > 0:
-            self.start_slideshow()
+            self.show_initial_transition()
         else:
             self.show_error(f"No supported images found in: {image_folder}")
     
     def initialize_layout_system(self):
         """Initialize the layout system based on configuration"""
-        # Get screen dimensions
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
+        # Get screen dimensions with high DPI support
+        screen_width, screen_height = self.get_actual_screen_resolution()
         
         print(f"Screen dimensions: {screen_width}x{screen_height}")
         
@@ -215,6 +288,133 @@ class ScreenSaver:
             bg='black'
         )
         exit_label.pack(pady=20)
+    
+    def show_initial_transition(self):
+        """Show initial black screen with dissolve transition to a random 16:9 landscape photo"""
+        try:
+            # Clear any existing content
+            for widget in self.root.winfo_children():
+                widget.destroy()
+            
+            # Ensure black background
+            self.root.configure(bg='black')
+            
+            # Check if we have 16:9 landscape photos
+            landscape_16_9_photos = self.photos_by_category.get("16:9_landscape", [])
+            
+            if landscape_16_9_photos:
+                # Select a random 16:9 landscape photo
+                import random
+                self.initial_photo_metadata = random.choice(landscape_16_9_photos)
+                
+                print(f"🎬 Initial transition: Using 16:9 landscape photo: {os.path.basename(self.initial_photo_metadata.filepath)}")
+                
+                # Calculate display dimensions to fit the screen while maintaining aspect ratio
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                
+                # Calculate scale to fit the image within the screen
+                scale_x = screen_width / self.initial_photo_metadata.width
+                scale_y = screen_height / self.initial_photo_metadata.height
+                scale = min(scale_x, scale_y)  # Use min to ensure image fits within screen
+                
+                target_width = int(self.initial_photo_metadata.width * scale)
+                target_height = int(self.initial_photo_metadata.height * scale)
+                
+                # Create a label for the photo (initially black)
+                self.initial_photo_label = tk.Label(self.root, bg='black')
+                self.initial_photo_label.place(
+                    x=(screen_width - target_width) // 2,  # Center horizontally
+                    y=(screen_height - target_height) // 2,  # Center vertically
+                    width=target_width,
+                    height=target_height
+                )
+                
+                # Start the dissolve transition
+                self.start_dissolve_transition()
+            else:
+                print("⚠️  No 16:9 landscape photos available, proceeding with normal flow")
+                self.initial_transition_complete = True
+                self.start_slideshow()
+                
+        except Exception as e:
+            print(f"Error in initial transition: {e}")
+            # Fallback to normal flow
+            self.initial_transition_complete = True
+            self.start_slideshow()
+    
+    def start_dissolve_transition(self):
+        """Start the dissolve transition from 0% to 100% opacity over 0.25 seconds"""
+        try:
+            # Store the original image for alpha blending
+            self.original_image = Image.open(self.initial_photo_metadata.filepath)
+            
+            # Calculate display dimensions to fit the screen while maintaining aspect ratio
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            
+            # Calculate scale to fit the image within the screen
+            scale_x = screen_width / self.initial_photo_metadata.width
+            scale_y = screen_height / self.initial_photo_metadata.height
+            scale = min(scale_x, scale_y)  # Use min to ensure image fits within screen
+            
+            target_width = int(self.initial_photo_metadata.width * scale)
+            target_height = int(self.initial_photo_metadata.height * scale)
+            
+            # Resize the original image
+            self.original_image = self.original_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            
+            # Calculate step size for smooth transition (0.25 seconds = 250ms)
+            # Use 50 steps for smoother animation (5ms per step)
+            total_steps = 50
+            step_delay = 5  # milliseconds (5ms * 50 = 250ms = 0.25 seconds)
+            
+            def animate_transition(step=0):
+                if step >= total_steps:
+                    # Transition complete
+                    self.initial_transition_complete = True
+                    print("🎬 Initial transition complete, starting normal slideshow")
+                    # Add a small pause to make the final image visible
+                    self.root.after(500, self.start_slideshow)  # 0.5 second pause
+                    return
+                
+                # Calculate current opacity (0.0 to 1.0)
+                current_opacity = step / total_steps
+                
+                # Debug output for transition progress
+                if step % 10 == 0 or step == total_steps - 1:  # Log every 10th step and final step
+                    print(f"🎬 Transition step {step}/{total_steps}: opacity {current_opacity:.2f}")
+                
+                # Create a new image with the current opacity
+                # We'll blend the image with a black background based on opacity
+                if current_opacity < 1.0:
+                    # Create a black background image
+                    black_bg = Image.new('RGB', (target_width, target_height), 'black')
+                    
+                    # Blend the image with black background based on opacity
+                    blended_image = Image.blend(black_bg, self.original_image, current_opacity)
+                    
+                    # Convert to PhotoImage and update the label
+                    photo = ImageTk.PhotoImage(blended_image)
+                    self.initial_photo_label.configure(image=photo)
+                    self.initial_photo_label.photo = photo  # Keep a reference
+                else:
+                    # At 100% opacity, show the original image
+                    photo = ImageTk.PhotoImage(self.original_image)
+                    self.initial_photo_label.configure(image=photo)
+                    self.initial_photo_label.photo = photo  # Keep a reference
+                
+                # Schedule next step
+                self.root.after(step_delay, lambda: animate_transition(step + 1))
+            
+            # Start the animation
+            animate_transition()
+            
+        except Exception as e:
+            print(f"Error in dissolve transition: {e}")
+            # Fallback to normal flow
+            self.initial_transition_complete = True
+            self.start_slideshow()
     
     def start_slideshow(self):
         """Start the image slideshow"""

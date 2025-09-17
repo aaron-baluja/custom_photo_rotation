@@ -798,6 +798,39 @@ class PhotoSelector:
                         if selected_photo:
                             break
                 
+                # CRITICAL FALLBACK: If still no photo found, reset layout tracking and try again
+                if not selected_photo:
+                    print(f"    🚨 CRITICAL: No unique photo found for {pane.name} pane even in fallback mode")
+                    print(f"      🔍 Layout used photos: {[os.path.basename(f) for f in list(used_in_layout)[:5]]}...")
+                    print(f"      🔍 Available categories: {pane.photo_categories}")
+                    
+                    # Show availability for each category
+                    for category in pane.photo_categories:
+                        if category in photos_by_category:
+                            total_photos = len(photos_by_category[category])
+                            available_photos = len([p for p in photos_by_category[category] if p.filepath not in used_in_layout])
+                            print(f"      📊 {category}: {total_photos} total, {available_photos} available")
+                    
+                    # If no photos are available in any category, reset layout tracking as last resort
+                    total_available = 0
+                    for category in pane.photo_categories:
+                        if category in photos_by_category:
+                            total_available += len([p for p in photos_by_category[category] if p.filepath not in used_in_layout])
+                    
+                    if total_available == 0:
+                        print(f"      🔄 EMERGENCY RESET: All photos used, clearing layout tracking to allow reuse")
+                        used_in_layout.clear()
+                        
+                        # Try one more time with cleared tracking
+                        for category in pane.photo_categories:
+                            if category in photos_by_category and photos_by_category[category]:
+                                selected_photo = random.choice(photos_by_category[category])
+                                used_in_layout.add(selected_photo.filepath)
+                                pane_photos[pane.name] = selected_photo
+                                self.mark_photo_as_used(selected_photo)
+                                print(f"      ✅ Emergency selection: {os.path.basename(selected_photo.filepath)}")
+                                break
+                
                 # If still no photo selected, this is a critical error
                 if not selected_photo:
                     print(f"    🚨 CRITICAL: No unique photo found for {pane.name} pane even in fallback mode")
