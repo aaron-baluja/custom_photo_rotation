@@ -10,6 +10,13 @@ import subprocess
 import shutil
 from datetime import datetime
 
+def pause_on_error(message=""):
+    """Pause execution to allow user to read error messages"""
+    if message:
+        print(f"\n{message}")
+    print("\n" + "=" * 60)
+    input("Press Enter to exit...")
+
 def print_header():
     """Print build header"""
     print("=" * 60)
@@ -25,14 +32,20 @@ def clean_build_directories():
     dirs_to_clean = ["build", "dist", "__pycache__"]
     for dir_name in dirs_to_clean:
         if os.path.exists(dir_name):
-            shutil.rmtree(dir_name)
-            print(f"   ✅ Cleaned {dir_name}")
+            try:
+                shutil.rmtree(dir_name)
+                print(f"   ✅ Cleaned {dir_name}")
+            except Exception as e:
+                print(f"   ⚠️  Warning: Could not clean {dir_name}: {e}")
     
     # Clean .spec files
-    spec_files = [f for f in os.listdir(".") if f.endswith(".spec")]
-    for spec_file in spec_files:
-        os.remove(spec_file)
-        print(f"   ✅ Cleaned {spec_file}")
+    try:
+        spec_files = [f for f in os.listdir(".") if f.endswith(".spec")]
+        for spec_file in spec_files:
+            os.remove(spec_file)
+            print(f"   ✅ Cleaned {spec_file}")
+    except Exception as e:
+        print(f"   ⚠️  Warning: Could not clean spec files: {e}")
     
     print()
 
@@ -68,7 +81,7 @@ def build_executable():
     print("🔨 Building executable with PyInstaller...")
     
     cmd = [
-        "python", "-m", "PyInstaller",
+        "py", "-m", "PyInstaller",
         "--onefile",                    # Single executable file
         "--windowed",                   # No console window (production mode)
         "--name=PhotoRotationScreensaver",  # Executable name
@@ -98,15 +111,24 @@ def build_executable():
     ]
     
     print(f"   Running: {' '.join(cmd)}")
+    print()
     
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
         print("   ✅ PyInstaller build completed successfully!")
+        if result.stdout:
+            print("\n   📤 Build output:")
+            print(result.stdout)
         return True
     except subprocess.CalledProcessError as e:
         print(f"   ❌ PyInstaller build failed!")
-        print(f"   📤 stdout: {e.stdout}")
-        print(f"   📥 stderr: {e.stderr}")
+        print(f"\n   📤 STDOUT:\n{e.stdout}")
+        print(f"\n   📥 STDERR:\n{e.stderr}")
+        return False
+    except FileNotFoundError as e:
+        print(f"   ❌ PyInstaller not found!")
+        print(f"   Make sure PyInstaller is installed: pip install pyinstaller")
+        print(f"   Error details: {e}")
         return False
 
 def create_helper_files():
@@ -247,8 +269,6 @@ def create_user_guide():
         print("   ❌ User_Guide.txt not found - skipping")
     
     print()
-    
-    print()
 
 def verify_build():
     """Verify the build was successful"""
@@ -380,20 +400,20 @@ def main():
         print_header()
         
         if not check_requirements():
-            print("❌ Build failed due to missing requirements!")
+            pause_on_error("❌ Build failed due to missing requirements!")
             sys.exit(1)
         
         clean_build_directories()
         
         if not build_executable():
-            print("❌ Build failed during PyInstaller execution!")
+            pause_on_error("❌ Build failed during PyInstaller execution!")
             sys.exit(1)
         
         create_helper_files()
         create_user_guide()
         
         if not verify_build():
-            print("❌ Build verification failed!")
+            pause_on_error("❌ Build verification failed!")
             sys.exit(1)
         
         # Create distribution zip
@@ -401,12 +421,16 @@ def main():
         
         print_summary(zip_filename)
         
+        # Pause before exit on success too
+        print("\n" + "=" * 60)
+        input("Press Enter to exit...")
+        
     except Exception as e:
         print(f"\n💥 Build failed with unexpected error: {e}")
         import traceback
         traceback.print_exc()
+        pause_on_error()
         sys.exit(1)
 
 if __name__ == "__main__":
     main()
-
