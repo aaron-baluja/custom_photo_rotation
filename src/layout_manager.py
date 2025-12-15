@@ -64,7 +64,7 @@ class LayoutManager:
                     width=self.screen_width,
                     height=self.screen_height,
                     photo_categories=["ultra_wide", "16:9_landscape", 
-                                   "4:3_landscape", "square"],
+                                   "4:3_landscape"],
                     name="main"
                 )
             ],
