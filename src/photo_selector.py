@@ -682,12 +682,9 @@ class PhotoSelector:
             panes_by_width = sorted(panes, key=lambda p: p.width, reverse=True)
             
             # Assign square to wider pane, vertical to narrower pane
-            if panes_by_width[0].width >= panes_by_width[1].width:
-                pane_photos[panes_by_width[0].name] = photo_square
-                pane_photos[panes_by_width[1].name] = photo_43_vertical
-            else:
-                pane_photos[panes_by_width[1].name] = photo_square
-                pane_photos[panes_by_width[0].name] = photo_43_vertical
+            # panes_by_width is already sorted in descending order, so [0] is wider and [1] is narrower
+            pane_photos[panes_by_width[0].name] = photo_square
+            pane_photos[panes_by_width[1].name] = photo_43_vertical
             
             # Validate the crop values
             if self.validate_photo_layout(pane_photos):

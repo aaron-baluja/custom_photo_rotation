@@ -609,15 +609,20 @@ class ScreenSaver:
                 photo_metadata = self.photo_selector.get_next_photo_for_pane(pane.name)
             
             if not photo_metadata:
+                print(f"⚠️  No photo metadata for {pane.name} pane")
                 return
             
             # Load image
             image = Image.open(photo_metadata.filepath)
+            original_size = image.size
             
             # Scale pane dimensions from actual resolution to Tkinter resolution
             display_pane_width = int(pane.width * self.display_scale_x)
             display_pane_height = int(pane.height * self.display_scale_y)
             
+            print(f"🖼️  STARTING display_photo_in_pane for [{pane.name}]")
+            print(f"🖼️  [{pane.name}] Pane target: {display_pane_width}x{display_pane_height}, Original image: {original_size}")
+            print(f"🖼️  [{pane.name}] display_scale_x={self.display_scale_x}, display_scale_y={self.display_scale_y}")
             
             # Handle ultra-wide photos differently - maintain aspect ratio without cropping
             is_ultra_wide = photo_metadata.aspect_ratio_category == "ultra_wide"
@@ -629,28 +634,81 @@ class ScreenSaver:
                     photo_metadata.width, photo_metadata.height,
                     stretch_to_fill=False  # Don't stretch ultra-wide photos
                 )
+                print(f"🖼️  [{pane.name}] Ultra-wide: Resizing to {target_width}x{target_height} (maintain aspect ratio)")
                 # Resize image maintaining aspect ratio
                 image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
             else:
                 # All other photos: use cropping to maintain aspect ratio while filling the pane
-                crop_x, crop_y, crop_width, crop_height = calculate_crop_dimensions(
-                    display_pane_width, display_pane_height,
-                    photo_metadata.width, photo_metadata.height
-                )
-                
-                # Resize image to cover the pane (may be larger than pane)
+                # Calculate scale factors for both dimensions
                 scale_x = display_pane_width / photo_metadata.width
                 scale_y = display_pane_height / photo_metadata.height
                 scale = max(scale_x, scale_y)
                 
-                scaled_width = int(photo_metadata.width * scale)
-                scaled_height = int(photo_metadata.height * scale)
+                print(f"🖼️  [{pane.name}] Scale factors: x={scale_x:.4f}, y={scale_y:.4f}, max={scale:.4f}")
+                
+                # Calculate scaled dimensions using ceiling to ensure we cover the entire pane
+                # This prevents gaps due to integer rounding
+                import math
+                scaled_width = math.ceil(photo_metadata.width * scale)
+                scaled_height = math.ceil(photo_metadata.height * scale)
+                
+                # Ensure scaled dimensions are at least as large as the pane
+                # This is critical for proper cropping
+                scaled_width = max(scaled_width, display_pane_width)
+                scaled_height = max(scaled_height, display_pane_height)
+                
+                print(f"🖼️  [{pane.name}] Scaled image: {scaled_width}x{scaled_height} (from {photo_metadata.width}x{photo_metadata.height})")
                 
                 # Resize image
                 image = image.resize((scaled_width, scaled_height), Image.Resampling.LANCZOS)
+                print(f"🖼️  [{pane.name}] After resize: {image.size}")
+                
+                # Calculate crop position to center the image
+                crop_x = (scaled_width - display_pane_width) // 2
+                crop_y = (scaled_height - display_pane_height) // 2
+                
+                print(f"🖼️  [{pane.name}] Initial crop position: x={crop_x}, y={crop_y}")
+                
+                # Ensure crop coordinates are valid and non-negative
+                crop_x = max(0, crop_x)
+                crop_y = max(0, crop_y)
+                
+                # Ensure the crop box doesn't exceed image bounds
+                crop_right = min(crop_x + display_pane_width, scaled_width)
+                crop_bottom = min(crop_y + display_pane_height, scaled_height)
+                
+                # Validate crop box
+                if crop_right <= crop_x or crop_bottom <= crop_y:
+                    print(f"❌ [{pane.name}] Invalid crop box! x:{crop_x}-{crop_right}, y:{crop_y}-{crop_bottom}")
+                    # Fallback: use center crop
+                    crop_x = max(0, (scaled_width - display_pane_width) // 2)
+                    crop_y = max(0, (scaled_height - display_pane_height) // 2)
+                    crop_right = min(crop_x + display_pane_width, scaled_width)
+                    crop_bottom = min(crop_y + display_pane_height, scaled_height)
+                    print(f"🔧 [{pane.name}] Fallback crop box: x:{crop_x}-{crop_right}, y:{crop_y}-{crop_bottom}")
+                
+                print(f"🖼️  [{pane.name}] Final crop box: ({crop_x}, {crop_y}, {crop_right}, {crop_bottom})")
                 
                 # Crop the image to fit the pane exactly
-                image = image.crop((crop_x, crop_y, crop_x + display_pane_width, crop_y + display_pane_height))
+                image = image.crop((crop_x, crop_y, crop_right, crop_bottom))
+                print(f"🖼️  [{pane.name}] After crop: {image.size}")
+                
+                # If the cropped image is smaller than the pane (shouldn't happen with max scale), pad it
+                if image.size != (display_pane_width, display_pane_height):
+                    print(f"⚠️  [{pane.name}] Cropped image {image.size} != target {(display_pane_width, display_pane_height)}, padding...")
+                    # Create a new image with the correct size and paste the cropped image
+                    padded_image = Image.new('RGB', (display_pane_width, display_pane_height), 'black')
+                    # Calculate position to center the cropped image
+                    pad_x = (display_pane_width - image.size[0]) // 2
+                    pad_y = (display_pane_height - image.size[1]) // 2
+                    padded_image.paste(image, (pad_x, pad_y))
+                    image = padded_image
+                    print(f"🖼️  [{pane.name}] After padding: {image.size}")
+            
+            # Verify final image size
+            if image.size[0] <= 0 or image.size[1] <= 0:
+                print(f"❌ [{pane.name}] ERROR: Final image has invalid size: {image.size}")
+                return
             
             # Add debug overlay if enabled
             if self.debug_overlay_visible:
@@ -665,14 +723,17 @@ class ScreenSaver:
             pane_frame = tk.Frame(self.root, bg='black')
             pane_frame.place(x=scaled_pane_x, y=scaled_pane_y, width=display_pane_width, height=display_pane_height)
             
-            
             # Create and configure image label
             image_label = tk.Label(pane_frame, image=photo, bg='black')
             image_label.photo = photo  # Keep a reference
             image_label.pack(expand=True, fill='both')
             
+            print(f"✅ [{pane.name}] Successfully displayed image {image.size}")
+            
         except Exception as e:
-            print(f"Error displaying photo in pane {pane.name}: {e}")
+            import traceback
+            print(f"❌ Error displaying photo in pane {pane.name}: {e}")
+            traceback.print_exc()
     
     def calculate_aspect_ratio_error(self, photo_metadata):
         """Calculate how far off the photo's aspect ratio is from its classified category"""
