@@ -3,7 +3,7 @@
 IMAGE_FOLDER=E:\Pallu and Jakub Processed Pictures\
 
 # Display settings
-CHANGE_INTERVAL=2000
+CHANGE_INTERVAL=10000
 # How often the layout and photos change in milliseconds (15 seconds default)
 
 # Layout settings
