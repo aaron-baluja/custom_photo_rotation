@@ -5,7 +5,7 @@ echo Make sure you have Python installed and dependencies installed with:
 echo pip install -r requirements.txt
 echo.
 
-python main.py
+py main.py
 
 echo.
 echo Screen saver closed.

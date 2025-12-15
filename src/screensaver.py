@@ -20,12 +20,19 @@ class ScreenSaver:
     """Main screen saver application class"""
     
     def __init__(self):
-        self.root = tk.Tk()
+        # Set DPI awareness BEFORE creating Tkinter window
+        self._set_dpi_awareness()
+        
+        self.root = tk.Tk()        
         self.root.title("Custom Photo Rotation Screen Saver")
         
         # Initialize components
         self.config_manager = ConfigManager()
         self.photo_classifier = PhotoClassifier()
+        
+        # Set window size to actual resolution before fullscreen
+        actual_width, actual_height = self.get_actual_screen_resolution()
+        self.root.geometry(f"{actual_width}x{actual_height}")
         
         # Configure fullscreen
         self.root.attributes('-fullscreen', True)
@@ -55,79 +62,53 @@ class ScreenSaver:
         
         # Load config and start
         self.load_and_classify_photos()
-    
-    def get_actual_screen_resolution(self):
-        """Get actual screen resolution, handling high DPI displays on Windows"""
+
+    def _set_dpi_awareness(self):
+        """Set DPI awareness for the application on Windows"""
         try:
-            # Try to get actual screen resolution using Windows API
             import ctypes
-            from ctypes import wintypes
+            import platform
             
-            # Get the primary monitor handle
-            user32 = ctypes.windll.user32
+            if platform.system() != 'Windows':
+                return
             
-            # Method 1: Try GetSystemMetrics for actual screen resolution
-            actual_width = user32.GetSystemMetrics(0)   # SM_CXSCREEN
-            actual_height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
-            
-            # Method 2: Get DPI-aware resolution using GetDeviceCaps
+            # Try Windows 10 1703+ method first (best)
             try:
-                hdc = user32.GetDC(0)
-                gdi32 = ctypes.windll.gdi32
-                
-                # Get actual pixel dimensions
-                pixel_width = gdi32.GetDeviceCaps(hdc, 8)   # HORZRES
-                pixel_height = gdi32.GetDeviceCaps(hdc, 10)  # VERTRES
-                
-                # Get logical dimensions  
-                logical_width = gdi32.GetDeviceCaps(hdc, 118)  # DESKTOPHORZRES
-                logical_height = gdi32.GetDeviceCaps(hdc, 117) # DESKTOPVERTRES
-                
-                user32.ReleaseDC(0, hdc)
-                
-                # Use the larger of the two methods (handles different DPI scenarios)
-                final_width = max(actual_width, pixel_width, logical_width)
-                final_height = max(actual_height, pixel_height, logical_height)
-                
-                print(f"🖥️  Screen resolution detection:")
-                print(f"   GetSystemMetrics: {actual_width}x{actual_height}")
-                print(f"   GetDeviceCaps (pixel): {pixel_width}x{pixel_height}")  
-                print(f"   GetDeviceCaps (logical): {logical_width}x{logical_height}")
-                print(f"   Final resolution: {final_width}x{final_height}")
-                
-                return final_width, final_height
-                
+                # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+                print("✅ DPI Awareness set: Per-Monitor V2")
+                return
+            except:
+                pass
+            
+            # Try Windows 8.1+ method
+            try:
+                # PROCESS_PER_MONITOR_DPI_AWARE = 2
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+                print("✅ DPI Awareness set: Per-Monitor")
+                return
+            except:
+                pass
+            
+            # Fallback to older Windows method
+            try:
+                ctypes.windll.user32.SetProcessDPIAware()
+                print("✅ DPI Awareness set: System DPI Aware")
+                return
             except Exception as e:
-                print(f"⚠️  GetDeviceCaps failed: {e}, using GetSystemMetrics")
-                return actual_width, actual_height
+                print(f"⚠️ Could not set DPI awareness: {e}")
                 
         except Exception as e:
-            # Fallback to Tkinter method
-            print(f"⚠️  Windows API failed: {e}, using Tkinter fallback")
-            tkinter_width = self.root.winfo_screenwidth()
-            tkinter_height = self.root.winfo_screenheight()
-            
-            print(f"🖥️  Tkinter screen resolution: {tkinter_width}x{tkinter_height}")
-            
-            # If Tkinter reports suspiciously low resolution, try to detect common high-DPI scenarios
-            if tkinter_width <= 1366 and tkinter_height <= 768:
-                print("⚠️  Detected potentially scaled resolution, checking for common 4K scenarios")
-                
-                # Common 4K scenarios when scaled
-                if tkinter_width == 1280 and tkinter_height == 720:
-                    print("🔍 1280x720 detected - likely 4K display with 300% scaling")
-                    return 3840, 2160  # Assume 4K
-                elif tkinter_width == 1366 and tkinter_height == 768:
-                    print("🔍 1366x768 detected - likely 4K display with ~280% scaling")
-                    return 3840, 2160  # Assume 4K
-                elif tkinter_width == 1536 and tkinter_height == 864:
-                    print("🔍 1536x864 detected - likely 4K display with 250% scaling")
-                    return 3840, 2160  # Assume 4K
-                elif tkinter_width == 1920 and tkinter_height == 1080:
-                    print("🔍 1920x1080 detected - could be native 1080p or scaled 4K")
-                    return 1920, 1080  # Keep as-is, could be native
-            
-            return tkinter_width, tkinter_height
+            print(f"⚠️ DPI awareness setup failed: {e}")
+
+    def get_actual_screen_resolution(self):
+        """Get actual screen resolution after DPI awareness is set"""
+        # After setting DPI awareness, Tkinter reports actual resolution
+        width = self.root.winfo_screenwidth()
+        height = self.root.winfo_screenheight()
+        
+        print(f"🖥️  Screen resolution: {width}x{height}")
+        return width, height
     
     def _add_triple_vertical_layout_for_4k(self, screen_width, screen_height):
         """Manually add Triple Vertical layout for 4K displays with DPI scaling"""
@@ -226,42 +207,19 @@ class ScreenSaver:
     
     def initialize_layout_system(self):
         """Initialize the layout system based on configuration"""
-        # Get screen dimensions - use Tkinter for layout calculations but detect 4K for layout availability
-        tkinter_width = self.root.winfo_screenwidth()
-        tkinter_height = self.root.winfo_screenheight()
-        actual_width, actual_height = self.get_actual_screen_resolution()
+        # Get screen resolution
+        screen_width, screen_height = self.get_actual_screen_resolution()
         
-        # Use actual resolution to determine layout availability, but Tkinter resolution for calculations
-        screen_width = tkinter_width
-        screen_height = tkinter_height
+        print(f"🖥️  Screen resolution: {screen_width}x{screen_height}")
         
-        print(f"🖥️  Screen resolution (Tkinter): {screen_width}x{screen_height}")
-        print(f"🖥️  Actual resolution (detected): {actual_width}x{actual_height}")
-        
-        # Override layout availability check if we detect 4K but Tkinter reports scaled resolution
-        layout_availability_width = actual_width
-        layout_availability_height = actual_height
-        
-        if actual_width >= 3840 and actual_height >= 2160 and tkinter_width < 1920:
-            print(f"🔍 4K display detected with DPI scaling - using actual resolution for layout availability")
-            layout_availability_width = actual_width
-            layout_availability_height = actual_height
-        else:
-            layout_availability_width = screen_width
-            layout_availability_height = screen_height
-        
-        # Create layout manager using Tkinter dimensions for consistent pane calculations
+        # Use screen resolution directly for layout calculations
         self.layout_manager = LayoutManager(screen_width, screen_height)
         print(f"🖥️  Layout manager created with: {screen_width}x{screen_height}")
         
-        # Check if we need to enable additional layouts for 4K displays
-        if layout_availability_width >= 3840 and layout_availability_height >= 2160 and screen_width < 1920:
-            print(f"🔧 4K display detected with DPI scaling - enabling additional layouts")
-            # For 4K displays with DPI scaling, manually enable Triple Vertical if not available
-            available_layouts = self.layout_manager.get_available_layout_names()
-            if "Triple Vertical" not in available_layouts:
-                print(f"🎯 Manually enabling Triple Vertical layout for scaled 4K display")
-                self._add_triple_vertical_layout_for_4k(screen_width, screen_height)
+        # Store scaling factor for photo display
+        self.display_scale_x = 1.0
+        self.display_scale_y = 1.0
+        print(f"🔍  Display scaling: {self.display_scale_x:.3f}x, {self.display_scale_y:.3f}y")
         
         # Get configured layout type
         layout_type = self.config_manager.get_layout_type()
@@ -642,6 +600,7 @@ class ScreenSaver:
         except Exception as e:
             print(f"Error refreshing display: {e}")
     
+
     def display_photo_in_pane(self, pane, photo_metadata=None):
         """Display a photo in a specific pane"""
         try:
@@ -650,10 +609,20 @@ class ScreenSaver:
                 photo_metadata = self.photo_selector.get_next_photo_for_pane(pane.name)
             
             if not photo_metadata:
+                print(f"⚠️  No photo metadata for {pane.name} pane")
                 return
             
             # Load image
             image = Image.open(photo_metadata.filepath)
+            original_size = image.size
+            
+            # Scale pane dimensions from actual resolution to Tkinter resolution
+            display_pane_width = int(pane.width * self.display_scale_x)
+            display_pane_height = int(pane.height * self.display_scale_y)
+            
+            print(f"🖼️  STARTING display_photo_in_pane for [{pane.name}]")
+            print(f"🖼️  [{pane.name}] Pane target: {display_pane_width}x{display_pane_height}, Original image: {original_size}")
+            print(f"🖼️  [{pane.name}] display_scale_x={self.display_scale_x}, display_scale_y={self.display_scale_y}")
             
             # Handle ultra-wide photos differently - maintain aspect ratio without cropping
             is_ultra_wide = photo_metadata.aspect_ratio_category == "ultra_wide"
@@ -661,32 +630,85 @@ class ScreenSaver:
             if is_ultra_wide:
                 # Ultra-wide photos: maintain aspect ratio (may have letterboxing)
                 target_width, target_height = calculate_display_dimensions(
-                    pane.width, pane.height,
+                    display_pane_width, display_pane_height,
                     photo_metadata.width, photo_metadata.height,
                     stretch_to_fill=False  # Don't stretch ultra-wide photos
                 )
+                print(f"🖼️  [{pane.name}] Ultra-wide: Resizing to {target_width}x{target_height} (maintain aspect ratio)")
                 # Resize image maintaining aspect ratio
                 image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
             else:
                 # All other photos: use cropping to maintain aspect ratio while filling the pane
-                crop_x, crop_y, crop_width, crop_height = calculate_crop_dimensions(
-                    pane.width, pane.height,
-                    photo_metadata.width, photo_metadata.height
-                )
-                
-                # Resize image to cover the pane (may be larger than pane)
-                scale_x = pane.width / photo_metadata.width
-                scale_y = pane.height / photo_metadata.height
+                # Calculate scale factors for both dimensions
+                scale_x = display_pane_width / photo_metadata.width
+                scale_y = display_pane_height / photo_metadata.height
                 scale = max(scale_x, scale_y)
                 
-                scaled_width = int(photo_metadata.width * scale)
-                scaled_height = int(photo_metadata.height * scale)
+                print(f"🖼️  [{pane.name}] Scale factors: x={scale_x:.4f}, y={scale_y:.4f}, max={scale:.4f}")
+                
+                # Calculate scaled dimensions using ceiling to ensure we cover the entire pane
+                # This prevents gaps due to integer rounding
+                import math
+                scaled_width = math.ceil(photo_metadata.width * scale)
+                scaled_height = math.ceil(photo_metadata.height * scale)
+                
+                # Ensure scaled dimensions are at least as large as the pane
+                # This is critical for proper cropping
+                scaled_width = max(scaled_width, display_pane_width)
+                scaled_height = max(scaled_height, display_pane_height)
+                
+                print(f"🖼️  [{pane.name}] Scaled image: {scaled_width}x{scaled_height} (from {photo_metadata.width}x{photo_metadata.height})")
                 
                 # Resize image
                 image = image.resize((scaled_width, scaled_height), Image.Resampling.LANCZOS)
+                print(f"🖼️  [{pane.name}] After resize: {image.size}")
+                
+                # Calculate crop position to center the image
+                crop_x = (scaled_width - display_pane_width) // 2
+                crop_y = (scaled_height - display_pane_height) // 2
+                
+                print(f"🖼️  [{pane.name}] Initial crop position: x={crop_x}, y={crop_y}")
+                
+                # Ensure crop coordinates are valid and non-negative
+                crop_x = max(0, crop_x)
+                crop_y = max(0, crop_y)
+                
+                # Ensure the crop box doesn't exceed image bounds
+                crop_right = min(crop_x + display_pane_width, scaled_width)
+                crop_bottom = min(crop_y + display_pane_height, scaled_height)
+                
+                # Validate crop box
+                if crop_right <= crop_x or crop_bottom <= crop_y:
+                    print(f"❌ [{pane.name}] Invalid crop box! x:{crop_x}-{crop_right}, y:{crop_y}-{crop_bottom}")
+                    # Fallback: use center crop
+                    crop_x = max(0, (scaled_width - display_pane_width) // 2)
+                    crop_y = max(0, (scaled_height - display_pane_height) // 2)
+                    crop_right = min(crop_x + display_pane_width, scaled_width)
+                    crop_bottom = min(crop_y + display_pane_height, scaled_height)
+                    print(f"🔧 [{pane.name}] Fallback crop box: x:{crop_x}-{crop_right}, y:{crop_y}-{crop_bottom}")
+                
+                print(f"🖼️  [{pane.name}] Final crop box: ({crop_x}, {crop_y}, {crop_right}, {crop_bottom})")
                 
                 # Crop the image to fit the pane exactly
-                image = image.crop((crop_x, crop_y, crop_x + pane.width, crop_y + pane.height))
+                image = image.crop((crop_x, crop_y, crop_right, crop_bottom))
+                print(f"🖼️  [{pane.name}] After crop: {image.size}")
+                
+                # If the cropped image is smaller than the pane (shouldn't happen with max scale), pad it
+                if image.size != (display_pane_width, display_pane_height):
+                    print(f"⚠️  [{pane.name}] Cropped image {image.size} != target {(display_pane_width, display_pane_height)}, padding...")
+                    # Create a new image with the correct size and paste the cropped image
+                    padded_image = Image.new('RGB', (display_pane_width, display_pane_height), 'black')
+                    # Calculate position to center the cropped image
+                    pad_x = (display_pane_width - image.size[0]) // 2
+                    pad_y = (display_pane_height - image.size[1]) // 2
+                    padded_image.paste(image, (pad_x, pad_y))
+                    image = padded_image
+                    print(f"🖼️  [{pane.name}] After padding: {image.size}")
+            
+            # Verify final image size
+            if image.size[0] <= 0 or image.size[1] <= 0:
+                print(f"❌ [{pane.name}] ERROR: Final image has invalid size: {image.size}")
+                return
             
             # Add debug overlay if enabled
             if self.debug_overlay_visible:
@@ -695,17 +717,23 @@ class ScreenSaver:
             # Convert to PhotoImage
             photo = ImageTk.PhotoImage(image)
             
-            # Create frame for this pane
+            # Create frame for this pane using scaled coordinates and dimensions
+            scaled_pane_x = int(pane.x * self.display_scale_x)
+            scaled_pane_y = int(pane.y * self.display_scale_y)
             pane_frame = tk.Frame(self.root, bg='black')
-            pane_frame.place(x=pane.x, y=pane.y, width=pane.width, height=pane.height)
+            pane_frame.place(x=scaled_pane_x, y=scaled_pane_y, width=display_pane_width, height=display_pane_height)
             
             # Create and configure image label
             image_label = tk.Label(pane_frame, image=photo, bg='black')
             image_label.photo = photo  # Keep a reference
             image_label.pack(expand=True, fill='both')
             
+            print(f"✅ [{pane.name}] Successfully displayed image {image.size}")
+            
         except Exception as e:
-            print(f"Error displaying photo in pane {pane.name}: {e}")
+            import traceback
+            print(f"❌ Error displaying photo in pane {pane.name}: {e}")
+            traceback.print_exc()
     
     def calculate_aspect_ratio_error(self, photo_metadata):
         """Calculate how far off the photo's aspect ratio is from its classified category"""
@@ -773,12 +801,29 @@ class ScreenSaver:
             # Get the pane's display aspect ratio
             pane_ratio = pane.width / pane.height
             
-            # Calculate the stretch error as the absolute difference
-            stretch_error = abs(photo_ratio - pane_ratio)
-            return stretch_error
+            # Calculate the actual crop percentage
+            # When photo is stretched to fill pane, we need to determine which dimension
+            # gets cropped and by how much
+            
+            if photo_ratio > pane_ratio:
+                # Photo is wider than pane - will be cropped horizontally
+                # The photo will be scaled to fit the pane height, then cropped horizontally
+                scale_factor = pane.height / photo_metadata.height
+                scaled_width = photo_metadata.width * scale_factor
+                cropped_width = scaled_width - pane.width
+                crop_percentage = cropped_width / scaled_width
+            else:
+                # Photo is taller than pane - will be cropped vertically
+                # The photo will be scaled to fit the pane width, then cropped vertically
+                scale_factor = pane.width / photo_metadata.width
+                scaled_height = photo_metadata.height * scale_factor
+                cropped_height = scaled_height - pane.height
+                crop_percentage = cropped_height / scaled_height
+            
+            return max(0.0, crop_percentage)
             
         except Exception as e:
-            print(f"Error calculating display stretch error: {e}")
+            print(f"Error calculating display crop error: {e}")
             return 0.0
     
     def add_debug_overlay(self, image, photo_metadata, pane):
@@ -803,7 +848,7 @@ class ScreenSaver:
             # Get detailed aspect ratio information
             target_ratio, actual_ratio, aspect_ratio_error = self.get_detailed_aspect_ratio_info(photo_metadata)
             
-            # Calculate display crop/letterbox error
+            # Calculate display crop/letterbox error using actual pane dimensions
             display_crop_error = self.calculate_display_crop_error(photo_metadata, pane)
             
             # Determine display method for debug info
