@@ -676,12 +676,18 @@ class PhotoSelector:
                 attempts += 1
                 continue
             
-            # Randomly assign to left/right panes
+            # Assign photos to panes based on pane width (wider pane gets square, narrower gets vertical)
+            # This prevents rendering issues that occur when square photos are assigned to narrow panes
             panes = list(layout.panes)
-            random.shuffle(panes)
+            panes_by_width = sorted(panes, key=lambda p: p.width, reverse=True)
             
-            pane_photos[panes[0].name] = photo_square
-            pane_photos[panes[1].name] = photo_43_vertical
+            # Assign square to wider pane, vertical to narrower pane
+            if panes_by_width[0].width >= panes_by_width[1].width:
+                pane_photos[panes_by_width[0].name] = photo_square
+                pane_photos[panes_by_width[1].name] = photo_43_vertical
+            else:
+                pane_photos[panes_by_width[1].name] = photo_square
+                pane_photos[panes_by_width[0].name] = photo_43_vertical
             
             # Validate the crop values
             if self.validate_photo_layout(pane_photos):
