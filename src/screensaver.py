@@ -42,6 +42,10 @@ class ScreenSaver:
         self.root.bind('<Escape>', lambda e: self.exit_screensaver())
         self.root.bind('<Button-1>', lambda e: self.exit_screensaver())
         self.root.bind('<KeyPress>', self.on_key_press)
+        
+        # Ensure window comes to foreground and can receive input
+        # Schedule after window is created to ensure effectiveness
+        self.root.after(100, self._bring_to_foreground)
         self.root.focus_set()  # Make sure the window can receive key events
         
         # Variables
@@ -100,6 +104,55 @@ class ScreenSaver:
                 
         except Exception as e:
             print(f"⚠️ DPI awareness setup failed: {e}")
+
+    def _bring_to_foreground(self):
+        """Bring the window to the foreground and ensure it has focus"""
+        try:
+            import ctypes
+            import platform
+            
+            # Get the window handle
+            hwnd = self.root.winfo_id()
+            
+            if platform.system() == 'Windows':
+                # Use Windows API to bring window to foreground
+                try:
+                    # SetForegroundWindow - brings window to foreground
+                    ctypes.windll.user32.SetForegroundWindow(hwnd)
+                    print("✅ Window brought to foreground using SetForegroundWindow")
+                except Exception as e:
+                    print(f"⚠️ SetForegroundWindow failed: {e}")
+                
+                try:
+                    # ShowWindow with SW_SHOW to ensure window is visible
+                    # SW_SHOW = 5
+                    ctypes.windll.user32.ShowWindow(hwnd, 5)
+                    print("✅ Window shown using ShowWindow(SW_SHOW)")
+                except Exception as e:
+                    print(f"⚠️ ShowWindow failed: {e}")
+                
+                try:
+                    # SetActiveWindow - sets the window as active
+                    ctypes.windll.user32.SetActiveWindow(hwnd)
+                    print("✅ Window set as active using SetActiveWindow")
+                except Exception as e:
+                    print(f"⚠️ SetActiveWindow failed: {e}")
+                
+                try:
+                    # BringWindowToTop - another method to bring to top
+                    ctypes.windll.user32.BringWindowToTop(hwnd)
+                    print("✅ Window brought to top using BringWindowToTop")
+                except Exception as e:
+                    print(f"⚠️ BringWindowToTop failed: {e}")
+            else:
+                # For non-Windows systems, use Tkinter methods
+                self.root.lift()
+                self.root.attributes('-topmost', True)
+                self.root.after_idle(lambda: self.root.attributes('-topmost', False))
+                print("✅ Window brought to foreground on non-Windows system")
+                
+        except Exception as e:
+            print(f"⚠️ Error bringing window to foreground: {e}")
 
     def get_actual_screen_resolution(self):
         """Get actual screen resolution after DPI awareness is set"""
@@ -1092,6 +1145,10 @@ class ScreenSaver:
     def run(self):
         """Start the screen saver"""
         try:
+            # Ensure window is brought to foreground before starting main loop
+            print("🚀 Starting screensaver main loop...")
+            self.root.update()  # Process any pending events to ensure window is fully initialized
+            self._bring_to_foreground()  # Bring to foreground again after window is fully ready
             self.root.mainloop()
         except KeyboardInterrupt:
             print("⌨️  Keyboard interrupt received")
