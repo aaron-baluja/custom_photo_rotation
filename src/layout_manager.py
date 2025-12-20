@@ -67,6 +67,13 @@ class LayoutManager:
                 "Five Photos": 4,
                 "Six Photos": 1
             }
+        
+        # Pink layout exclusion rule tracking
+        # Pink layouts: Four Photos, Five Photos, Six Photos
+        self.pink_layouts = {"Four Photos", "Five Photos", "Six Photos"}
+        self.non_pink_layouts = {"Single Pane", "Dual Pane", "Triple Vertical", "Three Mixed Photos"}
+        self.last_pink_layout_shown = False
+        self.non_pink_count_since_pink = 0
 
     
     def _create_available_layouts(self) -> List[Layout]:
@@ -476,7 +483,7 @@ class LayoutManager:
         return self._get_random_layout_by_weight()
     
     def rotate_to_next_layout(self) -> Optional[Layout]:
-        """Rotate to a randomly selected layout based on weights and return it"""
+        """Rotate to a randomly selected layout based on weights and apply pink layout tracking"""
         next_layout = self.get_next_layout()
         if next_layout:
             # Find the index of the selected layout
@@ -484,31 +491,65 @@ class LayoutManager:
                 if layout.name == next_layout.name:
                     self.current_layout = next_layout
                     self.current_layout_index = i
+                    
+                    # Update pink layout tracking
+                    if next_layout.name in self.pink_layouts:
+                        # Pink layout selected - reset counter
+                        self.last_pink_layout_shown = True
+                        self.non_pink_count_since_pink = 0
+                        print(f"🎨 Pink layout selected: {next_layout.name}. Must show 5 non-pink layouts before another pink layout.")
+                    else:
+                        # Non-pink layout selected - increment counter if tracking
+                        if self.last_pink_layout_shown:
+                            self.non_pink_count_since_pink += 1
+                            if self.non_pink_count_since_pink >= 5:
+                                self.last_pink_layout_shown = False
+                                print(f"✅ 5 non-pink layouts shown. Pink layouts are now available again.")
                     break
         return next_layout
     
     def _get_random_layout_by_weight(self) -> Optional[Layout]:
-        """Select a random layout based on weighted probabilities"""
+        """Select a random layout based on weighted probabilities with pink layout restrictions"""
         if not self.available_layouts:
             return None
         
         # Use instance weights (can be customized from config file)
         # Create a list of layouts with their weights
         weighted_layouts = []
-        for layout in self.available_layouts:
-            weight = self.layout_weights.get(layout.name, 0)
-            if weight > 0:
-                weighted_layouts.extend([layout] * weight)
+        
+        # If last layout was pink and we haven't shown 5+ non-pink layouts, exclude pink layouts
+        if self.last_pink_layout_shown and self.non_pink_count_since_pink < 5:
+            # Exclude pink layouts from selection
+            for layout in self.available_layouts:
+                weight = self.layout_weights.get(layout.name, 0)
+                if weight > 0 and layout.name in self.non_pink_layouts:
+                    weighted_layouts.extend([layout] * weight)
+            
+            if not weighted_layouts:
+                # Fallback: if no non-pink layouts available, allow pink layouts
+                for layout in self.available_layouts:
+                    weight = self.layout_weights.get(layout.name, 0)
+                    if weight > 0:
+                        weighted_layouts.extend([layout] * weight)
+        else:
+            # Normal selection - include all layouts
+            for layout in self.available_layouts:
+                weight = self.layout_weights.get(layout.name, 0)
+                if weight > 0:
+                    weighted_layouts.extend([layout] * weight)
         
         if not weighted_layouts:
-            # Fallback to uniform random selection if no weights match
+            # Fallback to uniform random selection if no layouts available
             return random.choice(self.available_layouts)
         
         # Select a random layout based on weights
         selected_layout = random.choice(weighted_layouts)
         
         # Debug logging
-        print(f"🎲 Weighted layout selection: {selected_layout.name}")
+        debug_info = f"🎲 Weighted layout selection: {selected_layout.name}"
+        if self.last_pink_layout_shown and self.non_pink_count_since_pink < 5:
+            debug_info += f" (pink restricted: {self.non_pink_count_since_pink}/5 non-pink shown)"
+        print(debug_info)
         
         return selected_layout
     
