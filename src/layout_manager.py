@@ -13,6 +13,7 @@ class LayoutType(Enum):
     SINGLE_PANE = "single_pane"
     DUAL_PANE = "dual_pane"
     TRIPLE_PANE = "triple_pane"
+    THREE_MIXED = "three_mixed"
     
     # Future layouts can be added here
 
@@ -139,7 +140,48 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-
+        # Three mixed photos layout (left vertical, top-right square/landscape, bottom-right landscape)
+        if self.screen_width >= 1920 and self.screen_height >= 1080:
+            # Calculate dimensions based on the design from the screenshot
+            # Left pane: ~56% width (1440px on 2560), full height
+            left_width = int(self.screen_width * 0.56)
+            right_width = self.screen_width - left_width
+            
+            # Right side split: top and bottom
+            # Top-right pane: ~52% of height (750px on 1440)
+            top_height = int(self.screen_height * 0.52)
+            bottom_height = self.screen_height - top_height
+            
+            layouts.append(Layout(
+                name="Three Mixed Photos",
+                type=LayoutType.THREE_MIXED,
+                panes=[
+                    Pane(
+                        x=0, y=0,
+                        width=left_width,
+                        height=self.screen_height,
+                        photo_categories=["4:3_vertical", "square", "16:9_vertical", "4:3_landscape", "16:9_landscape", "ultra_wide"],
+                        name="left"
+                    ),
+                    Pane(
+                        x=left_width, y=0,
+                        width=right_width,
+                        height=top_height,
+                        photo_categories=["square", "4:3_landscape", "16:9_landscape", "4:3_vertical", "16:9_vertical", "ultra_wide"],
+                        name="top_right"
+                    ),
+                    Pane(
+                        x=left_width, y=top_height,
+                        width=right_width,
+                        height=bottom_height,
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        name="bottom_right"
+                    )
+                ],
+                total_width=self.screen_width,
+                total_height=self.screen_height,
+                display_duration=30000  # 30 seconds
+            ))
         
         return layouts
     
@@ -243,10 +285,12 @@ class LayoutManager:
             return None
         
         # Define layout weights based on user requirements
+        # TEST MODE: Set Three Mixed Photos to 100% for testing
         layout_weights = {
-            "Single Pane": 78,      # 78% probability
-            "Dual Pane": 12,        # 12% probability  
-            "Triple Vertical": 10   # 10% probability
+            "Single Pane": 0,            # 0% probability (TEST)
+            "Dual Pane": 0,              # 0% probability (TEST)
+            "Triple Vertical": 0,        # 0% probability (TEST)
+            "Three Mixed Photos": 100    # 100% probability (TEST)
         }
         
         # Create a list of layouts with their weights

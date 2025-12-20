@@ -592,12 +592,23 @@ class ScreenSaver:
             # Get unique photos for all panes simultaneously
             pane_photos = self.photo_selector.get_unique_photos_for_all_panes()
             
+            # CRITICAL FIX: Ensure every pane has a photo - use fallback logic if needed
+            for pane in layout.panes:
+                if pane.name not in pane_photos or pane_photos[pane.name] is None:
+                    # Pane is missing a photo - find one using fallback logic
+                    fallback_photo = self._get_fallback_photo_for_pane(pane)
+                    if fallback_photo:
+                        pane_photos[pane.name] = fallback_photo
+                        print(f"⚠️  Using fallback photo for {pane.name} pane: {os.path.basename(fallback_photo.filepath)}")
+                    else:
+                        print(f"❌ CRITICAL: No photo available for {pane.name} pane!")
+            
             # Store the photos that are about to be displayed for refresh operations
             self.currently_displayed_photos = pane_photos.copy()
             
             # Display photos for each pane
             for pane in layout.panes:
-                if pane.name in pane_photos:
+                if pane.name in pane_photos and pane_photos[pane.name]:
                     photo = pane_photos[pane.name]
                     # Log aspect ratio error for debugging
                     target_ratio, actual_ratio, category_error = self.get_detailed_aspect_ratio_info(photo)
@@ -613,6 +624,29 @@ class ScreenSaver:
         except Exception as e:
             print(f"Error displaying photos: {e}")
             self.next_photos()
+    
+    def _get_fallback_photo_for_pane(self, pane):
+        """Get a fallback photo for a pane that couldn't find a suitable photo"""
+        try:
+            # Try to find any available photo from any category that this pane accepts
+            for category in pane.photo_categories:
+                if category in self.photos_by_category and self.photos_by_category[category]:
+                    available_photos = self.photos_by_category[category]
+                    if available_photos:
+                        # Return a random photo from this category
+                        return random.choice(available_photos)
+            
+            # If no photos found in preferred categories, try any category
+            for category in self.photos_by_category:
+                if self.photos_by_category[category]:
+                    return random.choice(self.photos_by_category[category])
+            
+            # No photos available at all
+            return None
+            
+        except Exception as e:
+            print(f"Error getting fallback photo for {pane.name}: {e}")
+            return None
     
     def refresh_display(self):
         """Refresh the display with current photos and debug overlay state (no new photos)"""
