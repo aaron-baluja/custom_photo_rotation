@@ -46,12 +46,27 @@ class Layout:
 class LayoutManager:
     """Manages different screen layouts and pane configurations"""
     
-    def __init__(self, screen_width: int, screen_height: int):
+    def __init__(self, screen_width: int, screen_height: int, layout_weights: Optional[Dict[str, int]] = None):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.current_layout = None
         self.current_layout_index = 0
         self.available_layouts = self._create_available_layouts()
+        
+        # Set layout weights (use provided weights or defaults)
+        if layout_weights:
+            self.layout_weights = layout_weights
+        else:
+            # Default layout weights
+            self.layout_weights = {
+                "Single Pane": 70,
+                "Dual Pane": 8,
+                "Triple Vertical": 5,
+                "Three Mixed Photos": 8,
+                "Four Photos": 4,
+                "Five Photos": 4,
+                "Six Photos": 1
+            }
 
     
     def _create_available_layouts(self) -> List[Layout]:
@@ -477,22 +492,11 @@ class LayoutManager:
         if not self.available_layouts:
             return None
         
-        # Define layout weights based on user requirements
-        # TEST MODE: Set Six Photos to 100% for testing
-        layout_weights = {
-            "Single Pane": 0,            # 0% probability (TEST)
-            "Dual Pane": 0,              # 0% probability (TEST)
-            "Triple Vertical": 0,        # 0% probability (TEST)
-            "Three Mixed Photos": 0,     # 0% probability (TEST)
-            "Four Photos": 0,            # 0% probability (TEST)
-            "Five Photos": 0,            # 0% probability (TEST)
-            "Six Photos": 100            # 100% probability (TEST)
-        }
-        
+        # Use instance weights (can be customized from config file)
         # Create a list of layouts with their weights
         weighted_layouts = []
         for layout in self.available_layouts:
-            weight = layout_weights.get(layout.name, 0)
+            weight = self.layout_weights.get(layout.name, 0)
             if weight > 0:
                 weighted_layouts.extend([layout] * weight)
         
@@ -504,7 +508,7 @@ class LayoutManager:
         selected_layout = random.choice(weighted_layouts)
         
         # Debug logging
-        print(f"🎲 Weighted layout selection: {selected_layout.name} (weights: Single=78%, Dual=12%, Triple=10%)")
+        print(f"🎲 Weighted layout selection: {selected_layout.name}")
         
         return selected_layout
     

@@ -209,6 +209,31 @@ class ConfigManager:
     
 
     
+    def get_layout_weights(self):
+        """Get the layout weights from config file"""
+        try:
+            weights_str = self.config.get('LAYOUT_WEIGHTS', '')
+            if not weights_str:
+                # Return default weights if not configured
+                return None
+            
+            # Parse format: "Single Pane:70,Dual Pane:8,Triple Vertical:5,Three Mixed Photos:8,Four Photos:4,Five Photos:4,Six Photos:1"
+            layout_weights = {}
+            for item in weights_str.split(','):
+                if ':' in item:
+                    layout_name, weight = item.split(':', 1)
+                    layout_name = layout_name.strip()
+                    try:
+                        weight = int(weight.strip())
+                        layout_weights[layout_name] = weight
+                    except ValueError:
+                        print(f"Invalid weight value for {layout_name}: {weight}")
+            
+            return layout_weights if layout_weights else None
+        except Exception as e:
+            print(f"Error parsing layout weights: {e}")
+            return None
+    
     def validate_image_folder(self):
         """Validate that the configured image folder exists"""
         folder = self.get_image_folder()

@@ -8,8 +8,14 @@ CHANGE_INTERVAL=10000
 
 # Layout settings
 LAYOUT_TYPE=auto
-# Available layouts: auto, single_pane, dual_pane, triple_vertical
+# Available layouts: auto, single_pane, dual_pane, triple_vertical, three_mixed, four_photos, five_photos, six_photos
 # auto = automatically rotate through all available layouts
+
+# Layout weights (probability of each layout being selected)
+# Format: "Layout Name:weight,Layout Name:weight,..."
+# Total weights don't need to equal 100 - they're relative probabilities
+# Uncomment and customize the LAYOUT_WEIGHTS line below to override default weights
+LAYOUT_WEIGHTS=Single Pane:70,Dual Pane:8,Triple Vertical:5,Three Mixed Photos:8,Four Photos:4,Five Photos:4,Six Photos:1
 
 # Debug overlay controls:
 # Press 'v' to toggle debug overlay visibility

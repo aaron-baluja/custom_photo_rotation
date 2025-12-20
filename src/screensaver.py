@@ -265,8 +265,11 @@ class ScreenSaver:
         
         print(f"🖥️  Screen resolution: {screen_width}x{screen_height}")
         
+        # Get layout weights from config (optional - uses defaults if not configured)
+        layout_weights = self.config_manager.get_layout_weights()
+        
         # Use screen resolution directly for layout calculations
-        self.layout_manager = LayoutManager(screen_width, screen_height)
+        self.layout_manager = LayoutManager(screen_width, screen_height, layout_weights)
         print(f"🖥️  Layout manager created with: {screen_width}x{screen_height}")
         
         # Store scaling factor for photo display
