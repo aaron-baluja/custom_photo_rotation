@@ -13,16 +13,20 @@ from datetime import datetime, timedelta
 class PhotoSelector:
     """Selects appropriate photos for each pane based on layout requirements"""
     
-    def __init__(self, layout_manager: LayoutManager):
+    def __init__(self, layout_manager: LayoutManager, time_weighting_multiplier: int = 3):
         self.layout_manager = layout_manager
         self.pane_photo_indices = {}  # Track current photo index for each pane
         self.pane_photos = {}  # Store photos organized by pane
         self.used_photos = set()  # Track photos currently in use across all panes
         
+        # Time weighting configuration
+        self.time_weighting_multiplier = max(1, time_weighting_multiplier)  # Ensure at least 1x
+        print(f"🕐 Time weighting multiplier: {self.time_weighting_multiplier}x (seasonal photos appear this many times more often)")
+        
         # New selection criteria tracking
         self.category_used_photos = {}  # Track used photos per category for repetition reduction
         self.category_available_photos = {}  # Track available photos per category
-        self.time_weighted_photos = set()  # Photos that should appear 3x more often
+        self.time_weighted_photos = set()  # Photos that should appear more often based on time
     
     def organize_photos_by_pane(self, photos_by_category: Dict[str, List[PhotoMetadata]]) -> Dict[str, List[PhotoMetadata]]:
         """Organize photos by pane based on current layout"""
@@ -388,17 +392,13 @@ class PhotoSelector:
             self.category_used_photos[category].clear()
             available_photos = all_photos.copy()
         
-        # Apply time weighting: photos in time window appear 25x more often (very aggressive)
-        # With only ~0.7% seasonal photos distributed across multiple categories,
-        # a very high multiplier is needed to make them appear frequently.
-        # The requirement is for seasonal photos to appear 3x more often than non-seasonal,
-        # but with the small pool, we use 25x to achieve meaningful visibility.
+        # Apply time weighting: photos in time window appear more often based on config multiplier
+        # The multiplier determines how many times more often seasonal photos appear
         weighted_photos = []
         for photo in available_photos:
             if photo.filepath in self.time_weighted_photos:
-                # Add time-weighted photos 25 times (25x likelihood)
-                # This makes seasonal photos roughly 8-10% of selections even with the small pool
-                weighted_photos.extend([photo] * 25)
+                # Add time-weighted photos multiple times based on configured multiplier
+                weighted_photos.extend([photo] * self.time_weighting_multiplier)
             else:
                 # Add regular photos once
                 weighted_photos.append(photo)

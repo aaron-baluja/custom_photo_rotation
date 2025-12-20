@@ -234,6 +234,22 @@ class ConfigManager:
             print(f"Error parsing layout weights: {e}")
             return None
     
+    def get_time_weighting_multiplier(self):
+        """Get the time weighting multiplier from config file"""
+        try:
+            multiplier_str = self.config.get('TIME_WEIGHTING_MULTIPLIER', '3')
+            multiplier = int(multiplier_str)
+            if multiplier < 1:
+                print(f"Warning: TIME_WEIGHTING_MULTIPLIER must be >= 1, using default of 3")
+                return 3
+            return multiplier
+        except ValueError:
+            print(f"Invalid TIME_WEIGHTING_MULTIPLIER value: {multiplier_str}, using default of 3")
+            return 3
+        except Exception as e:
+            print(f"Error parsing TIME_WEIGHTING_MULTIPLIER: {e}")
+            return 3
+    
     def validate_image_folder(self):
         """Validate that the configured image folder exists"""
         folder = self.get_image_folder()

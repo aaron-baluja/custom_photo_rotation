@@ -306,8 +306,9 @@ class ScreenSaver:
                 self.layout_manager.set_current_layout(layout_type)
                 print(f"Using layout: {self.layout_manager.get_current_layout().name}")
         
-        # Create photo selector
-        self.photo_selector = PhotoSelector(self.layout_manager)
+        # Create photo selector with time weighting multiplier from config
+        time_weighting_multiplier = self.config_manager.get_time_weighting_multiplier()
+        self.photo_selector = PhotoSelector(self.layout_manager, time_weighting_multiplier)
         
         # Organize photos by pane
         pane_photos = self.photo_selector.organize_photos_by_pane(self.photos_by_category)

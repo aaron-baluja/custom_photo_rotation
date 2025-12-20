@@ -17,6 +17,13 @@ LAYOUT_TYPE=auto
 # Uncomment and customize the LAYOUT_WEIGHTS line below to override default weights
 LAYOUT_WEIGHTS=Single Pane:70,Dual Pane:8,Triple Vertical:5,Three Mixed Photos:8,Four Photos:4,Five Photos:4,Six Photos:1
 
+# Photo Selection Settings
+
+# Time weighting multiplier
+# Photos taken within 7 days of the current date (ignoring year) will appear this many times more often
+# Default: 3 (photos in season appear 3x more often)
+TIME_WEIGHTING_MULTIPLIER=3
+
 # Debug overlay controls:
 # Press 'v' to toggle debug overlay visibility
 # Press 'Enter' to manually advance to the next layout
