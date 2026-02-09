@@ -165,16 +165,15 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-        # Three mixed photos layout (left vertical, top-right square/landscape, bottom-right landscape)
+        # Three mixed photos layout (diagram-aligned)
         if self.screen_width >= 1920 and self.screen_height >= 1080:
-            # Calculate dimensions based on the design from the screenshot
-            # Left pane: ~56% width (1440px on 2560), full height
-            left_width = int(self.screen_width * 0.56)
+            # Target sizes at 2560x1440 (from diagram)
+            # Left pane: 1510x1440
+            # Top-right: 1050x750
+            # Bottom-right: 1050x690
+            left_width = round(self.screen_width * (1510 / 2560))
             right_width = self.screen_width - left_width
-            
-            # Right side split: top and bottom
-            # Top-right pane: ~52% of height (750px on 1440)
-            top_height = int(self.screen_height * 0.52)
+            top_height = round(self.screen_height * (750 / 1440))
             bottom_height = self.screen_height - top_height
             
             layouts.append(Layout(
@@ -185,21 +184,21 @@ class LayoutManager:
                         x=0, y=0,
                         width=left_width,
                         height=self.screen_height,
-                        photo_categories=["4:3_vertical", "square", "16:9_vertical", "4:3_landscape", "16:9_landscape", "ultra_wide"],
+                        photo_categories=["4:3_vertical", "square"],
                         name="left"
                     ),
                     Pane(
                         x=left_width, y=0,
                         width=right_width,
                         height=top_height,
-                        photo_categories=["square", "4:3_landscape", "16:9_landscape", "4:3_vertical", "16:9_vertical", "ultra_wide"],
+                        photo_categories=["square", "4:3_landscape"],
                         name="top_right"
                     ),
                     Pane(
                         x=left_width, y=top_height,
                         width=right_width,
                         height=bottom_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="bottom_right"
                     )
                 ],
@@ -208,19 +207,19 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-        # Four photos layout (top-left, top-middle, right vertical, bottom landscape)
+        # Four photos layout (diagram-aligned)
         if self.screen_width >= 1920 and self.screen_height >= 1080:
-            # Calculate dimensions based on the design from the screenshot
-            # Top-left width: ~30% (765px on 2560)
-            top_left_width = int(self.screen_width * 0.30)
-            # Top-middle width: ~21% (545px on 2560)
-            top_middle_width = int(self.screen_width * 0.21)
-            # Right pane width: remaining width
-            right_width = self.screen_width - top_left_width - top_middle_width
+            # Target sizes at 2560x1440 (from diagram)
+            # Top-left: 765x545
+            # Top-middle: 770x545
+            # Right: 1025x1440
+            # Bottom: 1535x895
+            top_left_width = round(self.screen_width * (765 / 2560))
+            top_middle_width = round(self.screen_width * (770 / 2560))
+            left_section_width = top_left_width + top_middle_width
+            right_width = self.screen_width - left_section_width
             
-            # Top height: ~38% (545px on 1440)
-            top_height = int(self.screen_height * 0.38)
-            # Bottom height: remaining height
+            top_height = round(self.screen_height * (545 / 1440))
             bottom_height = self.screen_height - top_height
             
             layouts.append(Layout(
@@ -231,28 +230,28 @@ class LayoutManager:
                         x=0, y=0,
                         width=top_left_width,
                         height=top_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square"],
                         name="top_left"
                     ),
                     Pane(
                         x=top_left_width, y=0,
                         width=top_middle_width,
                         height=top_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square"],
                         name="top_middle"
                     ),
                     Pane(
                         x=top_left_width + top_middle_width, y=0,
                         width=right_width,
                         height=self.screen_height,
-                        photo_categories=["16:9_vertical", "4:3_vertical", "square", "16:9_landscape", "4:3_landscape", "ultra_wide"],
+                        photo_categories=["16:9_vertical", "4:3_vertical"],
                         name="right"
                     ),
                     Pane(
                         x=0, y=top_height,
-                        width=top_left_width + top_middle_width,
+                        width=left_section_width,
                         height=bottom_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="bottom"
                     )
                 ],
@@ -261,28 +260,24 @@ class LayoutManager:
                 display_duration=30000  # 30 seconds
             ))
         
-        # Five photos layout (top-left, top-middle, top-right tall, bottom-left, bottom-right)
+        # Five photos layout (diagram-aligned)
         if self.screen_width >= 1920 and self.screen_height >= 1080:
-            # Calculate dimensions based on the design from the screenshot
-            # Left section width: ~58% (1485px on 2560) - contains green + blue
-            left_section_width = int(self.screen_width * 0.58)
-            # Right section width: ~42% (1075px on 2560) - contains pink + yellow
+            # Target sizes at 2560x1440 (from diagram)
+            # Left section: 1485x1440, right section: 1075x1440
+            # Top-left: 740x590, Top-middle: 745x590
+            # Top-right: 1075x765, Bottom-left: 1485x850, Bottom-right: 1075x675
+            left_section_width = round(self.screen_width * (1485 / 2560))
             right_section_width = self.screen_width - left_section_width
-            
-            # Split left section vertically
-            # Top-left width: ~29% of left (740px / 1485px ≈ 50% of left section)
-            top_left_width = int(left_section_width * 0.50)
-            top_middle_width = left_section_width - top_left_width
-            
-            # Top section height: ~41% (590px on 1440)
-            top_height = int(self.screen_height * 0.41)
-            # Bottom section height: ~59% (850px on 1440)
+
+            top_height = round(self.screen_height * (590 / 1440))
             bottom_height = self.screen_height - top_height
-            
-            # Bottom-right height: smaller portion of bottom
-            bottom_right_height = int(bottom_height * 0.79)  # 675/850 ≈ 0.79
-            bottom_right_top = top_height + (bottom_height - bottom_right_height)
-            
+
+            top_left_width = round(left_section_width * (740 / 1485))
+            top_middle_width = left_section_width - top_left_width
+
+            top_right_height = round(self.screen_height * (765 / 1440))
+            bottom_right_height = self.screen_height - top_right_height
+
             layouts.append(Layout(
                 name="Five Photos",
                 type=LayoutType.FIVE_PHOTOS,
@@ -291,35 +286,35 @@ class LayoutManager:
                         x=0, y=0,
                         width=top_left_width,
                         height=top_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square"],
                         name="top_left"
                     ),
                     Pane(
                         x=top_left_width, y=0,
                         width=top_middle_width,
                         height=top_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square"],
                         name="top_middle"
                     ),
                     Pane(
                         x=left_section_width, y=0,
                         width=right_section_width,
-                        height=self.screen_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
-                        name="right"
+                        height=top_right_height,
+                        photo_categories=["16:9_landscape", "4:3_landscape", "square"],
+                        name="top_right"
                     ),
                     Pane(
                         x=0, y=top_height,
                         width=left_section_width,
                         height=bottom_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="bottom_left"
                     ),
                     Pane(
-                        x=left_section_width, y=bottom_right_top,
+                        x=left_section_width, y=top_right_height,
                         width=right_section_width,
                         height=bottom_right_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="bottom_right"
                     )
                 ],
@@ -327,69 +322,71 @@ class LayoutManager:
                 total_height=self.screen_height,
                 display_duration=30000  # 30 seconds
             ))
-        
-        # Six photos layout (2x3 grid with varying sizes)
+
+        # Six photos layout (diagram-aligned)
         if self.screen_width >= 1920 and self.screen_height >= 1080:
-            # Calculate dimensions based on the design from the screenshot
-            # Top section: beige (19%), yellow (36%), magenta (45%)
-            top_left_width = int(self.screen_width * 0.19)
-            top_middle_width = int(self.screen_width * 0.36)
-            top_right_width = self.screen_width - top_left_width - top_middle_width
-            
-            # Top height: ~44% (635px on 1440)
-            top_height = int(self.screen_height * 0.44)
-            # Bottom height: ~56% (805px on 1440)
+            # Target sizes at 2560x1440 (from diagram)
+            # Top widths: 485, 920, 1155
+            # Bottom widths: 1405, 670, 485
+            # Heights: left/middle 635/805, right 820/620
+            left_width = round(self.screen_width * (485 / 2560))
+            middle_width = round(self.screen_width * (920 / 2560))
+            right_width = self.screen_width - left_width - middle_width
+
+            top_height = round(self.screen_height * (635 / 1440))
             bottom_height = self.screen_height - top_height
-            
-            # Bottom section: green (55%), cyan (26%), purple (19%)
-            bottom_left_width = int(self.screen_width * 0.55)
-            bottom_middle_width = int(self.screen_width * 0.26)
+
+            right_top_height = round(self.screen_height * (820 / 1440))
+            right_bottom_height = self.screen_height - right_top_height
+
+            bottom_left_width = left_width + middle_width
+            bottom_middle_width = round(self.screen_width * (670 / 2560))
             bottom_right_width = self.screen_width - bottom_left_width - bottom_middle_width
-            
+
             layouts.append(Layout(
                 name="Six Photos",
                 type=LayoutType.SIX_PHOTOS,
                 panes=[
                     Pane(
                         x=0, y=0,
-                        width=top_left_width,
+                        width=left_width,
                         height=top_height,
-                        photo_categories=["4:3_vertical", "16:9_vertical", "square", "16:9_landscape", "4:3_landscape", "ultra_wide"],
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
                         name="top_left"
                     ),
                     Pane(
-                        x=top_left_width, y=0,
-                        width=top_middle_width,
+                        x=left_width, y=0,
+                        width=middle_width,
                         height=top_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="top_middle"
                     ),
                     Pane(
-                        x=top_left_width + top_middle_width, y=0,
-                        width=top_right_width,
-                        height=self.screen_height,
-                        photo_categories=["square", "4:3_landscape", "16:9_landscape", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        x=bottom_left_width, y=0,
+                        width=right_width,
+                        height=right_top_height,
+                        photo_categories=["square", "4:3_landscape"],
                         name="top_right"
                     ),
                     Pane(
                         x=0, y=top_height,
                         width=bottom_left_width,
                         height=bottom_height,
-                        photo_categories=["16:9_landscape", "4:3_landscape", "square", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        photo_categories=["16:9_landscape", "4:3_landscape"],
                         name="bottom_left"
                     ),
                     Pane(
-                        x=bottom_left_width, y=top_height,
+                        x=bottom_left_width, y=right_top_height,
                         width=bottom_middle_width,
-                        height=bottom_height,
-                        photo_categories=["square", "16:9_landscape", "4:3_landscape", "16:9_vertical", "4:3_vertical", "ultra_wide"],
+                        height=right_bottom_height,
+                        photo_categories=["square"],
                         name="bottom_middle"
                     ),
                     Pane(
-                        x=bottom_left_width + bottom_middle_width, y=top_height,
+                        x=bottom_left_width + bottom_middle_width, y=right_top_height,
                         width=bottom_right_width,
-                        height=bottom_height,
-                        photo_categories=["4:3_vertical", "16:9_vertical", "square", "16:9_landscape", "4:3_landscape", "ultra_wide"],
+                        height=right_bottom_height,
+                        photo_categories=["4:3_vertical", "16:9_vertical"],
                         name="bottom_right"
                     )
                 ],
@@ -397,7 +394,7 @@ class LayoutManager:
                 total_height=self.screen_height,
                 display_duration=30000  # 30 seconds
             ))
-        
+
         return layouts
     
     def get_layout(self, layout_name: str) -> Optional[Layout]:
