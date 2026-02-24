@@ -27,6 +27,10 @@ class PhotoSelector:
         self.category_used_photos = {}  # Track used photos per category for repetition reduction
         self.category_available_photos = {}  # Track available photos per category
         self.time_weighted_photos = set()  # Photos that should appear more often based on time
+        self.time_weighted_photo_count = 0
+        self.total_photo_count = 0
+        self.time_weighted_selection_count = 0
+        self.total_selection_count = 0
     
     def organize_photos_by_pane(self, photos_by_category: Dict[str, List[PhotoMetadata]]) -> Dict[str, List[PhotoMetadata]]:
         """Organize photos by pane based on current layout"""
@@ -305,19 +309,60 @@ class PhotoSelector:
         start_month_day = (start_date.month, start_date.day)
         end_month_day = (end_date.month, end_date.day)
         
-        print(f"📅 Time weighting: Looking for photos taken between {start_date.strftime('%B %d')} and {end_date.strftime('%B %d')} (any year)")
+        print(f"?? Time weighting: Looking for photos taken between {start_date.strftime('%B %d')} and {end_date.strftime('%B %d')} (any year)")
         
         self.time_weighted_photos.clear()
         total_time_weighted = 0
+        total_photos = 0
         
         for category, photos in photos_by_category.items():
             for photo in photos:
+                total_photos += 1
                 if self.is_photo_in_time_window(photo, start_month_day, end_month_day, current_month_day):
                     self.time_weighted_photos.add(photo.filepath)
                     total_time_weighted += 1
         
-        print(f"📊 Time weighted photos: {total_time_weighted} out of {sum(len(photos) for photos in photos_by_category.values())} total photos")
-    
+        self.time_weighted_photo_count = total_time_weighted
+        self.total_photo_count = total_photos
+        print(f"?? Time weighted photos: {total_time_weighted} out of {total_photos} total photos")
+
+    def record_displayed_photo(self, photo: PhotoMetadata):
+        """Record a displayed photo for time weighting summary statistics"""
+        if not photo:
+            return
+        
+        self.total_selection_count += 1
+        if photo.filepath in self.time_weighted_photos:
+            self.time_weighted_selection_count += 1
+
+    def get_time_weighting_summary(self) -> Dict[str, float]:
+        """Return summary statistics for time weighting effectiveness"""
+        total_photos = self.total_photo_count
+        seasonal_photos = self.time_weighted_photo_count
+        total_selections = self.total_selection_count
+        seasonal_selections = self.time_weighted_selection_count
+        
+        baseline_share = (seasonal_photos / total_photos) if total_photos else 0.0
+        if total_photos and self.time_weighting_multiplier:
+            non_seasonal = total_photos - seasonal_photos
+            denom = (seasonal_photos * self.time_weighting_multiplier) + non_seasonal
+            expected_share = (seasonal_photos * self.time_weighting_multiplier) / denom if denom else 0.0
+        else:
+            expected_share = 0.0
+        
+        observed_share = (seasonal_selections / total_selections) if total_selections else 0.0
+        
+        return {
+            "multiplier": float(self.time_weighting_multiplier),
+            "total_photos": float(total_photos),
+            "seasonal_photos": float(seasonal_photos),
+            "baseline_share": baseline_share,
+            "expected_share": expected_share,
+            "total_selections": float(total_selections),
+            "seasonal_selections": float(seasonal_selections),
+            "observed_share": observed_share,
+        }
+
     def is_photo_in_time_window(self, photo: PhotoMetadata, start_month_day: tuple, end_month_day: tuple, current_month_day: tuple) -> bool:
         """Check if a photo was taken within the 7-day window around current date (ignoring year)"""
         if not photo.date_taken:

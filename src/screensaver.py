@@ -620,6 +620,7 @@ class ScreenSaver:
                     is_ultra_wide = photo.aspect_ratio_category == "ultra_wide"
                     display_method = "Display Letterbox" if is_ultra_wide else "Display Crop"
                     print(f"📊 {pane.name} pane: {photo.aspect_ratio_category} photo ({photo.width}x{photo.height}) - Category Error: {target_ratio:.3f} - {actual_ratio:.3f} = {category_error:.3f}, {display_method}: {display_crop:.4f}")
+                    self.photo_selector.record_displayed_photo(photo)
                     self.display_photo_in_pane(pane, photo)
             
             # No need to schedule photo rotation - photos change with layouts
@@ -1177,9 +1178,37 @@ class ScreenSaver:
         # Photo rotation timer is no longer used in the new system
         # but keep the variable for potential future use
         
+        self.log_time_weighting_summary()
         print("🔄 Shutting down screensaver...")
         self.root.quit()
     
+    def log_time_weighting_summary(self):
+        """Log a summary of time weighting effectiveness"""
+        if not self.photo_selector:
+            return
+        
+        summary = self.photo_selector.get_time_weighting_summary()
+        total_photos = int(summary["total_photos"])
+        seasonal_photos = int(summary["seasonal_photos"])
+        total_selections = int(summary["total_selections"])
+        seasonal_selections = int(summary["seasonal_selections"])
+        multiplier = summary["multiplier"]
+        
+        print("?? Time Weighting Summary:")
+        if total_photos > 0:
+            baseline_pct = summary["baseline_share"] * 100
+            expected_pct = summary["expected_share"] * 100
+            print(f"  Photos in window: {seasonal_photos} / {total_photos} ({baseline_pct:.2f}% baseline)")
+            print(f"  Multiplier: {int(multiplier)}x (expected seasonal share: {expected_pct:.2f}%)")
+        else:
+            print("  Photos in window: 0 / 0 (no photos available)")
+        
+        if total_selections > 0:
+            observed_pct = summary["observed_share"] * 100
+            print(f"  Selections: {seasonal_selections} / {total_selections} ({observed_pct:.2f}% observed)")
+        else:
+            print("  Selections: 0 / 0 (no photos displayed)")
+
     def run(self):
         """Start the screen saver"""
         try:

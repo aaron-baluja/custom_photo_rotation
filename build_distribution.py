@@ -230,6 +230,11 @@ LAYOUT_TYPE=auto
 # You can also press 'v' key to toggle this while running
 DEBUG_MODE=false
 
+# Time weighting multiplier
+# Photos taken within 7 days of the current date (ignoring year) will appear this many times more often
+# Default: 3 (photos in season appear 3x more often)
+TIME_WEIGHTING_MULTIPLIER=3
+
 # ========================================
 # NOTES
 # ========================================
